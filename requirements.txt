@@ -1,0 +1,14 @@
+# Required Python interpreter: 3.13.x
+# Create/select a Python 3.13 environment before installing these packages.
+cartopy
+ipykernel
+jinja2
+matplotlib
+numpy
+openpyxl>=3.1.5
+pandas
+pyarrow
+pycountry
+requests
+shapely
+urllib3
