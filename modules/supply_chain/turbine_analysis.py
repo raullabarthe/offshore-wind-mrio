@@ -3,23 +3,137 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import math
+import os.path as op
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from modules.config import CORE_DEPLOYMENT
-from modules.country import NAME_TO_CODE, COUNTRY_COORDS, EU27
+from modules.config import CORE_DEPLOYMENT, SUPPLY_SOURCES
+from modules.country import NAME_TO_CODE, COUNTRY_COORDS, EU27, normalize_country_code
 
-from .inputs import CG_STD_MAP, oem_hq_country, ownership_oem, bridge
-from .helpers import (
-    normalize_country_code,
-    pick_assembly_facility_country,
-    pick_tower_assembly_country,
-    tower_assembly_country_shares,
-    get_import_total_fraction,
-    get_import_country_fractions,
+from .inputs import (
+    CG_STD_MAP,
+    import_category,
+    import_shares,
+    oem_hq_country,
+    ownership_oem,
+    bridge,
 )
+
+SUPP_ROOT = str(SUPPLY_SOURCES)
+
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
+
+
+def closest_country(base_country, candidate_countries, country_coords):
+    """Return the geographically closest candidate country."""
+    if base_country not in country_coords:
+        return None
+    lat_b, lon_b = country_coords[base_country]
+    best, best_dist = None, None
+    for country in candidate_countries:
+        if country not in country_coords:
+            continue
+        lat_c, lon_c = country_coords[country]
+        dlat = math.radians(lat_c - lat_b)
+        dlon = math.radians(lon_c - lon_b)
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(math.radians(lat_b))
+            * math.cos(math.radians(lat_c))
+            * math.sin(dlon / 2) ** 2
+        )
+        distance = 2 * 6371 * math.asin(math.sqrt(a))
+        if best is None or distance < best_dist:
+            best, best_dist = country, distance
+    return best
+
+
+def get_import_category(component_group, sub_component):
+    """Return the configured import category for a turbine subcomponent."""
+    category = import_category.get((component_group, sub_component))
+    return None if category in (None, "Turbines") else category
+
+
+def load_excel(filename: str, sheet_name: str, supp_root: str = SUPP_ROOT) -> pd.DataFrame:
+    """Load an Excel sheet from a file located in supp_root."""
+    path = op.join(supp_root, filename)
+    if not op.isfile(path):
+        raise FileNotFoundError(f"File not found: {path}")
+
+    available_sheets = pd.ExcelFile(path).sheet_names
+    if sheet_name not in available_sheets:
+        raise ValueError(
+            f"Sheet '{sheet_name}' not found in {path}. "
+            f"Available sheets: {available_sheets}"
+        )
+
+    return pd.read_excel(path, sheet_name=sheet_name, header=0)
+
+def pick_assembly_facility_country(base_country, oem, cg, facilities, oem_hq_country, country_coords):
+    """Nearest OEM-specific facility for component group, fallback to OEM HQ."""
+    cand = facilities[(facilities["Assembler"] == oem) & (facilities["component_group"] == cg)]
+    if cand.empty:
+        return oem_hq_country.get(oem)
+    same = cand[cand["country_origin"] == base_country]
+    if not same.empty:
+        return base_country
+    origin_country = closest_country(base_country, cand["country_origin"].unique(), country_coords)
+    return origin_country or oem_hq_country.get(oem)
+
+def pick_tower_assembly_country(base_country, facilities, country_coords):
+    """
+    For Towers: choose the assembly country as the country of the nearest
+    tower facility in assembly_facilities, ignoring OEM.
+    """
+    fac = facilities[facilities["component_group"] == "Tower"]
+    if fac.empty:
+        return base_country
+
+    candidate_countries = fac["country_origin"].dropna().unique()
+    best = closest_country(base_country, candidate_countries, country_coords)
+    return best or base_country
+
+
+def tower_assembly_country_shares(facilities: pd.DataFrame) -> dict:
+    """
+    Return shares by country for tower assembly facilities (count-based).
+    """
+    fac = facilities[facilities["component_group"] == "Tower"]
+    if fac.empty:
+        return {}
+    counts = fac["country_origin"].dropna().value_counts().astype(float)
+    total = counts.sum()
+    if total <= 0:
+        return {}
+    return (counts / total).to_dict()
+
+def get_import_total_fraction(cg, sc):
+    """
+    Returns the import share as a fraction of TOTAL demand (BoM + Assembly).
+    If no specific import category applies, returns 0.0.
+    """
+    cat = get_import_category(cg, sc)
+    if cat is None or cat not in import_shares:
+        return 0.0
+    return import_shares[cat]["total"] / 100.0
+
+def get_import_country_fractions(cg, sc):
+    """
+    Returns a dict {country_code: fraction_of_total_demand}.
+    If no import category applies, returns {}.
+    """
+    cat = get_import_category(cg, sc)
+    if cat is None or cat not in import_shares:
+        return {}
+
+    src = import_shares[cat]["sources"]
+    # src values are in percentage of TOTAL demand (not just imports), so we /100 here
+    return {NAME_TO_CODE.get(c, c): v / 100.0 for c, v in src.items()}
 
 # --------------------------------------------------
 # OEM market share by deployment country
@@ -273,18 +387,6 @@ def add_category_to_df_turbine(df_turbine, bridge):
 # 6. Import-share filter for plotting
 # --------------------------------------------------
 
-def filter_import_shares_for_turbine(df_turbine_cat, import_shares, import_category):
-    """
-    Return only import-share categories that are actually used
-    by the (component_group, sub_component) pairs in df_turbine_cat.
-    """
-    pairs = df_turbine_cat[["component_group", "sub_component"]].drop_duplicates()
-    used = set()
-    for _, r in pairs.iterrows():
-        cat = import_category.get((r["component_group"], r["sub_component"]))
-        if cat and cat != "Turbines":
-            used.add(cat)
-    return {k: v for k, v in import_shares.items() if k in used}
 
 
 # --------------------------------------------------
@@ -860,111 +962,4 @@ def load_b2_turbine_inputs(workbook_path: str) -> dict:
         "known_suppliers": load_b2_known_suppliers(workbook_path),
         "assembly_facilities": load_b2_assembly_facilities(workbook_path),
         "general_facilities": load_b2_general_facilities(workbook_path),
-    }
-
-
-def build_turbine_allocations(
-    cost_by_country: dict,
-    *,
-    share_dict_override: dict | None = None,
-    assembly_facilities: pd.DataFrame | None = None,
-    bom_facilities_override: pd.DataFrame | None = None,
-    ownership_oem_override: dict | None = None,
-    oem_hq_override: dict | None = None,
-    country_coords_override: dict | None = None,
-    component_group_map: dict | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Build allocation table (df_alloc) and trade table (turbine_trade)
-    from cost_by_country.
-    """
-    share_dict_use = share_dict_override or share_dict
-    cg_map = component_group_map or CG_STD_MAP
-    assembly_fac_use = assembly_facilities if assembly_facilities is not None else assembly_fac
-    bom_fac_use = bom_facilities_override if bom_facilities_override is not None else bom_facilities
-    ownership_use = ownership_oem_override or ownership_oem
-    oem_hq_use = oem_hq_override or oem_hq_country
-    coords_use = country_coords_override or COUNTRY_COORDS
-
-    cost_by_country_oem = split_turbine_costs_by_oem(cost_by_country, share_dict_use)
-    df_turbine = pd.DataFrame(flatten_turbine_costs(cost_by_country_oem))
-    if df_turbine.empty:
-        return pd.DataFrame(), pd.DataFrame()
-
-    df_turbine["component_group"] = df_turbine["component_group"].replace(cg_map)
-    df_turbine_cat = add_category_to_df_turbine(df_turbine, bridge)
-
-    df_alloc = allocate_all(
-        df_turbine_cat=df_turbine_cat,
-        oem_supply=oem_supply,
-        assembly_facilities=assembly_fac_use,
-        bom_facilities=bom_fac_use,
-        ownership_oem=ownership_use,
-        oem_hq_country=oem_hq_use,
-        country_coords=coords_use,
-    )
-
-    turbine_trade = build_turbine_trade(df_alloc)
-    return df_alloc, turbine_trade
-
-
-# ============================================================================
-# Data Loading Helper
-# ============================================================================
-
-def load_supply_chain_data(data_path: str | None = None):
-    """
-    Load turbine supply-chain inputs from Supplementary Material B2.
-    
-    Parameters
-    ----------
-    data_path : str, optional
-        Path to the B2 workbook or to the directory containing it. If None,
-        uses ``SUPPLY_SOURCES / "turbine"`` from config.
-        
-    Returns
-    -------
-    dict
-        Dictionary with loaded and prepared data:
-        - turbine_orders, oem_share_df, share_dict, capacity_by_country
-        - oem_supply, summary_table
-        - assembly_fac, bom_facilities
-    """
-    from modules.config import SUPPLY_SOURCES
-
-    default_name = "Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx"
-    path = Path(data_path) if data_path is not None else Path(SUPPLY_SOURCES) / "turbine"
-    workbook_path = path if path.suffix.lower() == ".xlsx" else path / default_name
-
-    b2_inputs = load_b2_turbine_inputs(str(workbook_path))
-
-    turbine_orders_raw = b2_inputs["oem_orders"]
-    share_dict, capacity_by_country, oem_share_df, turbine_orders = prepare_oem_share_by_country(turbine_orders_raw)
-
-    oem_supply_raw = b2_inputs["known_suppliers"]
-    summary_table, oem_supply = oem_suppliers(oem_supply_raw, component_group_map=CG_STD_MAP)
-
-    assembly_fac = b2_inputs["assembly_facilities"]
-
-    bom_fac_raw = b2_inputs["general_facilities"]
-
-    KEEP = {"Castings", "Forgings", "Converters", "Tower"}
-    DEPLOY = set(CORE_DEPLOYMENT)
-
-    bom_facilities = prepare_bom_facilities(
-        bom_fac_raw,
-        keep=KEEP,
-        deploy=DEPLOY,
-        include_eu27=True,
-    )
-    
-    return {
-        "turbine_orders": turbine_orders,
-        "oem_share_df": oem_share_df,
-        "share_dict": share_dict,
-        "capacity_by_country": capacity_by_country,
-        "oem_supply": oem_supply,
-        "summary_table": summary_table,
-        "assembly_fac": assembly_fac,
-        "bom_facilities": bom_facilities,
     }

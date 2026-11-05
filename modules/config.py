@@ -1,43 +1,32 @@
-﻿"""Project paths and run settings for the Energy Policy model."""
+"""Project paths and run settings for the Energy Policy model."""
 
 from __future__ import annotations
 
-import os
 import os.path as op
 import importlib.metadata as importlib_metadata
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 # ============================================================================
 # PATH DETECTION
 # ============================================================================
 
-def _first_existing(*candidates: str) -> Optional[str]:
-    """Return the first existing directory from candidates."""
-    return next((c for c in candidates if op.isdir(c)), None)
 
 
-# Detect module and project roots (safe in notebooks and scripts).
-ROOT = Path(op.dirname(op.abspath(__file__))) if "__file__" in globals() else Path.cwd()
-MODULES_ROOT = ROOT if ROOT.name == "modules" else ROOT / "modules"
-PROJECT_ROOT = MODULES_ROOT.parent
-
-# Generated files are written under outputs/ so source inputs and outputs stay separate.
-OUTPUTS_ROOT = PROJECT_ROOT / "outputs"
-IMG_ROOT = OUTPUTS_ROOT / "figures"
-TAB_ROOT = OUTPUTS_ROOT / "tables"
-CACHE_ROOT = OUTPUTS_ROOT / "cache"
-RESULTS_ROOT = CACHE_ROOT / "results"
-MRIO_SCENARIOS_DIR = CACHE_ROOT / "mrio_scenarios"
+# Detect the repository root from this file, independently of the current
+# working directory.  ``config.py`` lives directly below the repository root.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = str(PROJECT_ROOT / "modules")
+CALC_ROOT = PROJECT_ROOT
 
 # ============================================================================
 # SOURCE DATA PATHS (reorganized structure)
 # ============================================================================
 
 # Main directory
+MODULES_ROOT = CALC_ROOT / "modules"
 
 # --- Cost model module ---
 COST_MODEL_ROOT = MODULES_ROOT / "cost_model"
@@ -53,10 +42,35 @@ WINDFARM_DATA_ROOT = SUPPLY_SOURCES / "wind_farm"
 # --- MRIO analysis sources ---
 MRIO_ROOT = MODULES_ROOT / "mrio_analysis"
 DATASETS_DIR = MRIO_ROOT / "datasets"
+MRIO_DATA_DIR = DATASETS_DIR / "mrio"
+EMPLOYMENT_DATA_DIR = DATASETS_DIR / "employment"
 HELPERS_DIR = MRIO_ROOT / "helpers"
 METADATA_DIR = MRIO_ROOT / "metadata"
-for _path in (OUTPUTS_ROOT, IMG_ROOT, TAB_ROOT, CACHE_ROOT, RESULTS_ROOT, MRIO_SCENARIOS_DIR):
-    _path.mkdir(parents=True, exist_ok=True)
+MRIO_SCENARIOS_DIR = MRIO_ROOT / "scenarios"
+
+# --- Generated results ---
+RESULTS_ROOT = PROJECT_ROOT / "results"
+RESULTS_IMAGES = RESULTS_ROOT / "images"
+RESULTS_TABLES = RESULTS_ROOT / "tables"
+RESULTS_SUPPLEMENTARY = RESULTS_ROOT / "supplementary"
+RESULTS_CACHE = RESULTS_SUPPLEMENTARY / "cache"
+
+# Keep the established names used by plotting and table helpers, but point
+# them at the repository-local output tree.
+IMG_ROOT = RESULTS_IMAGES
+TAB_ROOT = RESULTS_TABLES
+
+for _output_dir in (RESULTS_IMAGES, RESULTS_TABLES, RESULTS_SUPPLEMENTARY):
+    _output_dir.mkdir(parents=True, exist_ok=True)
+
+
+def project_relative_path(path: str | Path) -> str:
+    """Return a portable project-relative display path for logs and notebooks."""
+    candidate = Path(path)
+    try:
+        return candidate.resolve().relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return candidate.as_posix()
 
 # ============================================================================
 # FIGURE SETTINGS
@@ -66,9 +80,7 @@ for _path in (OUTPUTS_ROOT, IMG_ROOT, TAB_ROOT, CACHE_ROOT, RESULTS_ROOT, MRIO_S
 # Can be overridden in notebooks
 CLOSE_FIGURES = True
 SAVE_FIGURES = False
-INSTALL_MISSING_REQUIREMENTS = True
-REQUIRED_PYTHON_MAJOR = 3
-REQUIRED_PYTHON_MINOR = 13
+INSTALL_MISSING_REQUIREMENTS = False
 
 # ============================================================================
 # DEPLOYMENT COUNTRIES
@@ -117,17 +129,13 @@ def _requirement_is_satisfied(line: str, installed_version: str) -> bool:
     return True
 
 
-def verify_python_version() -> None:
-    """Require the Python version used to validate the public workflow."""
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-    if (major, minor) != (REQUIRED_PYTHON_MAJOR, REQUIRED_PYTHON_MINOR):
-        raise RuntimeError(
-            "This model is configured for Python "
-            f"{REQUIRED_PYTHON_MAJOR}.{REQUIRED_PYTHON_MINOR}.x. "
-            f"The active environment is Python {major}.{minor}. "
-            "Create/select a Python 3.13 environment before running the notebook."
-        )
+def _status_marker(preferred: str, fallback: str) -> str:
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        preferred.encode(encoding)
+        return preferred
+    except UnicodeEncodeError:
+        return fallback
 
 
 def verify_requirements(
@@ -136,10 +144,8 @@ def verify_requirements(
     install_missing: bool | None = None,
 ) -> None:
     """Check that packages listed in requirements.txt are available."""
-    verify_python_version()
-
     if requirements_path is None:
-        requirements_path = PROJECT_ROOT / "requirements.txt"
+        requirements_path = CALC_ROOT / "requirements.txt"
     requirements_path = Path(requirements_path)
     if install_missing is None:
         install_missing = INSTALL_MISSING_REQUIREMENTS
@@ -154,8 +160,8 @@ def verify_requirements(
     ]
 
     missing = []
-    ok_marker = "OK"
-    print(f"Checking Python requirements with Python {sys.version_info.major}.{sys.version_info.minor}:")
+    ok_marker = _status_marker("✓", "OK")
+    print("Checking Python requirements:")
     for requirement in requirements:
         package_name = _requirement_package_name(requirement)
         try:

@@ -1,0 +1,168 @@
+prd_ava_code,description,parent_code,type,sub_type,A*0,A*3,A*10,A*21,A*38,A*64,A*88,P*0,P*1,P*2,P*3,P*4,P*5
+CPA_A,"Products of agriculture, forestry and fishing",CPA_TOTAL,Industries,Industries,1,1,1,1,1,0,0,0,0,0,0,0,0
+CPA_A01,"Products of agriculture, hunting and related services",CPA_A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_A02,"Products of forestry, logging and related services",CPA_A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_A03,Fish and other fishing products; aquaculture products; support services to fishing,CPA_A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_B-E,Industrial products (except construction works),CPA_TOTAL,Industries,Industries,1,1,1,0,0,0,0,0,0,0,0,0,0
+CPA_B,Mining and quarrying,CPA_B-E,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+CPA_B05,Coal and lignite,CPA_B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_B06,Crude petroleum and natural gas,CPA_B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_B07,Metal ores,CPA_B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_B08,Other mining and quarrying products,CPA_B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_B09,Mining support services,CPA_B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C,Manufactured products,CPA_B-E,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+CPA_C10T12,"Food, beverages and tobacco products",CPA_C,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_C10,Food products,CPA_C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C11,Beverages,CPA_C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C12,Tobacco products,CPA_C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C13T15,"Textiles, wearing apparel, leather and related products",CPA_C,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_C13,Textiles,CPA_C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C14,Wearing apparel,CPA_C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C15,Leather and related products,CPA_C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C16-18,"Wood and of products of wood and cork, except furniture; articles of straw and plaiting materials; paper and paper products; printing and recording services",CPA_C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_C16,"Wood and of products of wood and cork, except furniture; articles of straw and plaiting materials",CPA_C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C17,Paper and paper products,CPA_C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C18,Printing and recording services,CPA_C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C19,Coke and refined petroleum products,CPA_C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C20_21,Chemicals and basic pharmaceutical,CPA_C,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_C20,Chemicals and chemical products,CPA_C20_21,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C21,Basic pharmaceutical products and pharmaceutical preparations,CPA_C20_21,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C22_23,Rubber and plastic products; other non-metallic mineral products,CPA_C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_C22,Rubber and plastic products,CPA_C22_23,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C23,Other non-metallic mineral products,CPA_C22_23,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C24_25,"Basic metals; fabricated metal products, except machinery and equipment",CPA_C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_C24,Basic metals,CPA_C24_25,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C25,"Fabricated metal products, except machinery and equipment",CPA_C24_25,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C26,"Computer, electronic and optical products",CPA_C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C27,Electrical equipment,CPA_C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C28,Machinery and equipment n.e.c.,CPA_C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_C29_30,"Motor vehicles, trailers and semi-trailers; other transport equipment",CPA_C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_C29,"Motor vehicles, trailers and semi-trailers",CPA_C29_30,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C30,Other transport equipment,CPA_C29_30,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_C31-33,Furniture and other manufactured goods; repair and installation services of machinery and equipment,CPA_C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_C31_32,Furniture and other manufactured goods,CPA_C31-33,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+CPA_C31,Furniture,CPA_C31_32,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C32,Other manufactured goods,CPA_C31_32,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_C33,Repair and installation services of machinery and equipment,CPA_C31-33,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_D_E,"Electricity, gas, steam and air conditioning; water supply; sewerage, waste management and remediation services",CPA_B-E,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_D35,"Electricity, gas, steam and air conditioning",CPA_D_E,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+CPA_E,"Water supply; sewerage, waste management and remediation services",CPA_D_E,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_E36,Natural water; water treatment and supply services,CPA_E,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_E37T39,"Sewerage services; sewage sludge; waste collection, treatment and disposal services; materials recovery services; remediation services and other waste management services",CPA_E,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+CPA_E37,Sewerage services; sewage sludge,CPA_E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_E38,"Waste collection, treatment and disposal services; materials recovery services",CPA_E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_E39,Remediation services and other waste management services,CPA_E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_F,Constructions and construction works,CPA_TOTAL,Industries,Industries,1,1,1,1,1,1,0,0,0,0,0,0,0
+CPA_F41,Buildings and building construction works,CPA_F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_F42,Constructions and construction works for civil engineering,CPA_F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_F43,Specialised construction works,CPA_F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_G-I,"Wholesale and retail trade, transport, accomodation and food service activities",CPA_TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+CPA_G,Wholesale and retail trade services; repair services of motor vehicles and motorcycles,CPA_G-I,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_G45,Wholesale and retail trade and repair services of motor vehicles and motorcycles,CPA_G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_G46,"Wholesale trade services, except of motor vehicles and motorcycles",CPA_G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_G47,"Retail trade services, except of motor vehicles and motorcycles",CPA_G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_H-J,Transportation and storage services; information and communication services,CPA_TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_H,Transportation and storage services,CPA_G-I,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_H49,Land transport services and transport services via pipelines,CPA_H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_H50,Water transport services,CPA_H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_H51,Air transport services,CPA_H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_H52,Warehousing and support services for transportation,CPA_H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_H53,Postal and courier services,CPA_H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_I,Accommodation and food services,CPA_G-I,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+CPA_I55,Accommodation services,CPA_I,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_I56,Food and beverage serving services,CPA_I,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_J,Information and communication services,CPA_TOTAL,Industries,Industries,1,0,1,1,0,0,0,0,0,0,0,0,0
+CPA_J58-60,"Publishing services; motion picture, video and television programme production services, sound recording and music publishing; programming and broadcasting services",CPA_J,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+CPA_J58,Publishing services,CPA_J58-60,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_J59_60,"Motion picture, video and television programme production services, sound recording and music publishing; programming and broadcasting services",CPA_J58-60,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+CPA_J59,"Motion picture, video and television programme production services, sound recording and music publishing",CPA_J59_60,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_J60,Programming and broadcasting services,CPA_J59_60,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_J61,Telecommunications services,CPA_J,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_J62_63,"Computer programming, consultancy and related services; Information services",CPA_J,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_J62,"Computer programming, consultancy and related services",CPA_J62_63,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_J63,Information services,CPA_J62_63,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_K,Financial and insurance services,CPA_TOTAL,Industries,Industries,1,0,1,1,1,0,0,0,0,0,0,0,0
+CPA_K64,"Financial services, except insurance and pension funding",CPA_K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_K65,"Insurance, reinsurance and pension funding services, except compulsory social security",CPA_K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_K66,Services auxiliary to financial services and insurance services,CPA_K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_L_N,"Real estate services; professional, scientific and technical services; administrative and support services",CPA_TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_L,Real estate services,CPA_TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_L68,Real estate services,CPA_L,Industries,Industries,1,0,1,1,1,0,0,0,0,0,0,0,0
+CPA_L68A,Imputed rents of owner-occupied dwellings,CPA_L68,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_L68B,Real estate services excluding imputed rents,CPA_L68,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_M_N,"Professional, scientific and technical services; administrative and support services",CPA_TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+CPA_M,"Professional, scientific and technical services",CPA_M_N,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+CPA_M69_70,Legal and accounting services; services of head offices; management consultancy services,CPA_M,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_M69,Legal and accounting services,CPA_M69_70,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_M70,Services of head offices; management consulting services,CPA_M69_70,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_M71,Architectural and engineering services; technical testing and analysis services,CPA_M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_M72,Scientific research and development services,CPA_M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_M73,Advertising and market research services,CPA_M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_M74_75,"Other professional, scientific and technical services and veterinary services",CPA_M,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_M74,"Other professional, scientific and technical services",CPA_M74_75,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_M75,Veterinary services,CPA_M74_75,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_N,Administrative and support services,CPA_M_N,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_N77,Rental and leasing services,CPA_N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_N78,Employment services,CPA_N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_N79,"Travel agency, tour operator and other reservation services and related services",CPA_N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_N80T82,"Security and investigation services; services to buildings and landscape; office administrative, office support and other business support services",CPA_N,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+CPA_N80,Security and investigation services,CPA_N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_N81,Services to buildings and landscape,CPA_N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_N82,"Office administrative, office support and other business support services",CPA_N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_O-Q,"Public administration, defence, education, human health and social work services",CPA_TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+CPA_O84,Public administration and defence services; compulsory social security services,CPA_O-Q,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+CPA_P85,Education services,CPA_O-Q,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+CPA_Q,Human health and social work services,CPA_O-Q,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+CPA_Q86,Human health services,CPA_Q,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+CPA_Q87_88,Residential care services; social work services without accommodation,CPA_Q,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+CPA_Q87,Residential care services,CPA_Q87_88,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_Q88,Social work services without accommodation,CPA_Q87_88,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_R-U,"Arts, entertainment and recreation; other services; services of household and extra-territorial organizations and bodies",CPA_TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+CPA_R_S,"Entertainement, recreations and other services",CPA_R-U,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_R,"Arts, entertainment and recreation services",CPA_R_S,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_R90T92,"Creative, arts, entertainment, library, archive, museum, other cultural services; gambling and betting services",CPA_R,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+CPA_R90,"Creative, arts and entertainment services",CPA_R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_R91,"Library, archive, museum and other cultural services",CPA_R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_R92,Gambling and betting services,CPA_R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_R93,Sporting services and amusement and recreation services,CPA_R,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_S,Other services,CPA_R_S,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+CPA_S94,Services furnished by membership organisations,CPA_S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_S95,Repair services of computers and personal and household goods,CPA_S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_S96,Other personal services,CPA_S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+CPA_T-U,Services of households as employers; undifferentiated goods and services produced by households for own use; services provided by extraterritorial organisations and bodies,CPA_R-U,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+CPA_T,Services of households as employers; undifferentiated goods and services produced by households for own use,CPA_T-U,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+CPA_T97,Services of households as employers of domestic personnel,CPA_T,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_T98,Undifferentiated goods and services produced by private households for own use,CPA_T,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+CPA_U,Services provided by extraterritorial organisations and bodies,CPA_T-U,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+CPA_X,Unknown,CPA_T-U,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+CPA_TOTAL,Total products,P2_ADJ,Components of value added,Total,1,0,0,0,0,0,0,0,0,0,0,0,0
+OP_RES,Direct purchases abroad by residents,P2_ADJ,Components of value added,Total,1,1,0,0,0,0,0,0,0,0,0,0,0
+OP_NRES,Purchases on the domestic territory by non-residents,P2_ADJ,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P2,Intermediate consumption,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P2_ADJ,Total intermediate consumption /final use,P1,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+D1,Compensation of employees,B1G,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+D11,Wages and salaries,D1,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,1
+B2A3G,"Operating surplus and mixed income, gross",B1G,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,1
+B2A3N,"Operating surplus and mixed income, net",B2A3G,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,1,0
+P51C,Consumption of fixed capital,B2A3G,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,1,1
+D29X39,Other taxes less other subsidies on production,B1G,Components of value added,Imports,1,0,0,0,0,0,0,0,1,1,1,0,0
+B1G,"Value added, gross",P1,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P1,Output,,Components of value added,Total,1,0,0,0,0,0,0,0,1,1,1,1,1
+P51G,Gross fixed capital formation,,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,1,1,1,0
+B3G,"Mixed income, gross",,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,0,0,0,1
+EMP_DC,Total employment domestic concept,,Components of value added,Profits,1,0,0,0,0,0,0,0,1,1,1,1,0
+DISC,Discrepancy,,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,1
+NAP,Not applicable,,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,1
+LE,Closing balance sheet,,Components of value added,Profits,1,0,0,0,0,0,0,0,1,1,1,1,0
+P7,Imports of goods and services,TS_BP,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+P7_B0,Imports of goods and services from the EU Member States,P7,Components of value added,Total,1,0,0,0,0,0,0,0,1,1,1,1,1
+P7_U2,Imports of goods and services from members of the Monetary Union,P7_B0,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+P7_U3,Imports of goods and services from non-members of the Monetary Union,P7_B0,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+P7_D0,Imports of goods and services from the institutions of the EU,P7,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,0,0,0,0
+ADJ_P6,Cif/fob adjustments on exports,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+IMP,Use of imported products,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+CIFOBADJ,Cif/fob adjustment,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+TU,Total use,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+TS_BP,Total supply at basic prices,TS_PP,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,0
+D21X31,Taxes less subsidies on products,TS_PP,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,0
+,,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0

@@ -1,71 +1,63 @@
 # Targeting Made-in-Europe rules in wind energy auctions
 
-Computational model for the article:
+Computational research archive for the manuscript *Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?* by Raúl Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou. This is a submission version prepared for **Energy Economics**; it is not a published or released software version.
 
-> Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?
+## Research overview
 
-Raul Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou  
-Department of Wind and Energy Systems, Technical University of Denmark  
-Journal target: Energy Policy
+The model evaluates the global value-chain consequences of manufacturing procurement reallocations for a representative 1 GW offshore wind farm. It links detailed country-level production allocations for turbine and balance-of-plant components with the European Commission's FIGARO multiregional input-output (MRIO) accounts. The analysis reports gross value added (GVA), employment expressed as FTE-years, upstream trade effects, and procurement-price effects under EU27 resilience and offshoring counterfactuals.
 
-## Overview
+The public workflow uses processed, redistributable sourcing inputs rather than raw supplier-contract data. It reconstructs geographic sourcing shares beyond direct contractors and then reallocates manufacturing procurement between EU27 and non-EU27 suppliers. It does not alter the underlying research assumptions or scenario definitions.
 
-The model links offshore-wind component sourcing with a FIGARO multiregional input-output framework. It estimates how alternative Tier-1 sourcing rules affect EU27 gross value added, employment, and upstream trade-linkage effects for a representative 1 GW offshore wind farm.
-
-The workflow is implemented in `main.ipynb` and organized around the following main components:
+## Repository layout
 
 ```text
-modules/config.py        Paths and run settings
-modules/cost_model/      Offshore-wind cost structure
-modules/supply_chain/    Supplier, OEM, facility, and sourcing allocation
-modules/mrio_analysis/   FIGARO MRIO construction and employment extension
-modules/results/         Scenario calculations, tables, and figures
-outputs/                 Generated figures, tables, and scenario caches
+main.ipynb                         Ordered paper workflow
+modules/config.py                  Project-relative paths and run controls
+modules/cost_model/                Offshore-wind cost assumptions and model
+modules/supply_chain/              Turbine and wind-farm sourcing allocations
+modules/mrio_analysis/             FIGARO, employment, and classification code
+modules/impacts/                   Economic impacts, scenarios, tables, figures
+results/images/                    Final publication figures (tracked)
+results/tables/                    Final publication LaTeX tables (tracked)
+results/supplementary/             Final C2/D workbooks; runtime cache directories ignored
+docs/                              Provenance, inventory, validation, workflow
 ```
 
-## Reproducibility
+## Public inputs and data availability
 
-The public workflow runs from the supplementary workbooks submitted with the article:
+The following processed inputs are committed and are sufficient to execute the public sourcing and industrial-classification workflow:
 
-- B1 wind-farm sourcing starts from `sourcing_long`.
-- B2 turbine sourcing reconstructs the allocation process from OEM, supplier, facility, and import-share inputs.
-- C1 industrial classification starts from `mapping_long`.
+| Input | Purpose | Status |
+| --- | --- | --- |
+| `Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Processed wind-farm sourcing shares and contract summaries | Public processed input |
+| `Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | OEM, supplier, facility, and import-share turbine inputs | Public processed input |
+| `Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Cost-to-industry concordance | Public processed input |
+| `MRIO_2024_CORE_ROW_ind_by_ind.parquet` | Prepared FIGARO 2024 core/ROW industry matrix | Derived public-data input |
 
-Raw TGS 4C Offshore supplier-contract records are the source for the B1 supplier calculations reported in the supplementary material; the public run uses the processed B1 workbook.
+The full FIGARO 2024 industry-by-industry flatfile is an external European Commission source and is deliberately not redistributed here. The code records its source URL and can read a locally downloaded flatfile when the prepared matrix must be rebuilt. Eurostat, ILOSTAT, and bounded OECD inputs are external sources used for the employment/FTE construction; their live APIs and release versions can change. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the exact distinction between included, external, and restricted data.
 
-FIGARO MRIO flatfiles are not committed because the source CSV files are large. If automatic download from CIRCABC fails, place the FIGARO 2025 EU inter-country input-output flatfiles in `modules/mrio_analysis/datasets/` using the filenames expected by `modules/mrio_analysis/mrio.py`.
+Raw TGS 4C Offshore supplier-contract files are **not included**. They remain subject to redistribution rights and are not needed by the notebook's public B1-based workflow. Do not add them to a public branch or release without written confirmation of redistribution rights.
 
-Use Python 3.13.x. The notebook checks the active interpreter before installing
-or importing the analysis dependencies.
+## Installation and execution
 
-Install the Python requirements and run the notebook:
+Use Python 3.10 or later in a new environment:
 
-```bash
-py -3.13 -m venv .venv
-.venv\Scripts\activate
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 jupyter lab main.ipynb
 ```
 
-On Windows, the helper script `setup_env.ps1` creates the virtual environment,
-installs the requirements, and registers the Jupyter kernel:
+Run `main.ipynb` from top to bottom. The default settings keep `RECOMPUTE`, `FIRST_MRIO`, and `FIRST_EMP` false. Final publication figures, LaTeX tables, and supplementary workbooks are version-controlled under `results/`. Runtime scenario and employment cache directories (`results/supplementary/cache*/`) remain local-only; a fresh public clone can therefore download external employment inputs and build missing cache artifacts. To rebuild the FIGARO matrix from its external flatfile, follow the controlled steps in the reproducibility guide rather than changing the published notebook defaults.
 
-```powershell
-.\setup_env.ps1
-```
+## Results and validation
 
-Generated files are written under `outputs/`: figures in `outputs/figures`,
-tables in `outputs/tables`, and scenario caches in `outputs/cache/results`.
+The archived local source outputs were checked without recomputation. Rounded reference values are global GVA of EUR 6.6 billion, global employment of 90 thousand FTE-years, EU27 GVA capture of 71%, and EU27 employment capture of 41%. At the central price assumption, the table reports full resilience of about +8% EU27 GVA, +9% EU27 employment, and +1.5% project expenditure, versus full offshoring of about -39%, -42%, and -6.7%, respectively. These are reporting checks, not substitutes for the native-precision output files.
 
-## Supplementary Materials
+Detailed validation status and limitations are in [docs/VALIDATION.md](docs/VALIDATION.md). The checked final manuscript figures, tables, and C2/D supplementary workbooks are first-class publication assets in `results/`; runtime caches are deliberately not staged.
 
-The methodological description, source documentation, spreadsheet audit trail, and detailed results are provided in the article supplementary material. Release assets should include the supplementary PDF and workbooks listed in `SUPPLEMENTARY_MATERIALS.md`.
+## Supplementary material, citation, and release status
 
-## Citation
-
-Citation metadata is provided in `CITATION.cff`. The repository release can be archived in Zenodo once the article submission package is final.
-
-## License
-
-A code and data license should be selected before public release.
+The expected supplementary files and their roles are listed in [SUPPLEMENTARY_MATERIALS.md](SUPPLEMENTARY_MATERIALS.md). Cite this software using [CITATION.cff](CITATION.cff). A software license, public release version, tag, GitHub release, and Zenodo record have not yet been selected or created. See [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) before making the branch public.

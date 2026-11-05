@@ -7,14 +7,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import textwrap
 import re
+import warnings
 
-from modules.latex_style import apply_house_style, save_and_close, tex_safe, tex_bold, set_house_style
-from modules.country import COLOR_MAP
+from modules.latex_style import apply_house_style, save_and_close, tex_safe, set_house_style
 
-from modules.config import DATASETS_DIR, HELPERS_DIR
+from modules.config import HELPERS_DIR, MRIO_DATA_DIR, project_relative_path
 
 # Default industry color map (fallback if industrial.COLOR_IND cannot be imported)
 COLOR_IND_DEFAULT = {
@@ -54,27 +52,62 @@ COLOR_IND_DEFAULT = {
 }
 
 # --------------------------------------------------------------
-# Paths (centralized in modules.config)
+# FIGARO dataset paths and source URLs
 # --------------------------------------------------------------
-FLATFILE_PATH = DATASETS_DIR / "flatfile_eu-ic-io_prod-by-prod_25ed_2023.csv"
-PARQUET_PATH = DATASETS_DIR / "flatfile_eu-ic-io_prod-by-prod_25ed_2023.parquet"
-MRIO_CACHE_PATH = DATASETS_DIR / "MRIO_2023_CORE_ROW.parquet"
+DEFAULT_MRIO_YEAR = 2024
+_KNOWN_MRIO_EDITIONS = {2023: "25ed", 2024: "26ed"}
 
-# Alternative: industry-by-industry flatfile/parquet + cache
-FLATFILE_PATH_IND = DATASETS_DIR / "flatfile_eu-ic-io_ind-by-ind_25ed_2023.csv"
-PARQUET_PATH_IND = DATASETS_DIR / "flatfile_eu-ic-io_ind-by-ind_25ed_2023.parquet"
-MRIO_CACHE_PATH_IND = DATASETS_DIR / "MRIO_2023_CORE_ROW_ind_by_ind.parquet"
 
-# Optional URL for industry-by-industry source (CIRCABC details page)
+def _mrio_file_path(year: int, *, industry_matrix: bool, suffix: str) -> Path:
+    matrix_type = "ind-by-ind" if industry_matrix else "prod-by-prod"
+    edition = _KNOWN_MRIO_EDITIONS.get(year, f"{year}ed")
+    directory = MRIO_DATA_DIR / str(year)
+    preferred = directory / f"flatfile_eu-ic-io_{matrix_type}_{edition}_{year}{suffix}"
+    if preferred.exists():
+        return preferred
+
+    candidates = sorted(directory.glob(f"flatfile_eu-ic-io_{matrix_type}_*_{year}{suffix}"))
+    return candidates[0] if candidates else preferred
+
+
+def _mrio_cache_path(year: int, *, industry_matrix: bool) -> Path:
+    suffix = "_ind_by_ind" if industry_matrix else ""
+    return MRIO_DATA_DIR / str(year) / f"MRIO_{year}_CORE_ROW{suffix}.parquet"
+
+
+FLATFILE_PATH = _mrio_file_path(
+    DEFAULT_MRIO_YEAR,
+    industry_matrix=False,
+    suffix=".csv",
+)
+PARQUET_PATH = _mrio_file_path(
+    DEFAULT_MRIO_YEAR,
+    industry_matrix=False,
+    suffix=".parquet",
+)
+MRIO_CACHE_PATH = _mrio_cache_path(DEFAULT_MRIO_YEAR, industry_matrix=False)
+
+FLATFILE_PATH_IND = _mrio_file_path(
+    DEFAULT_MRIO_YEAR,
+    industry_matrix=True,
+    suffix=".csv",
+)
+PARQUET_PATH_IND = _mrio_file_path(
+    DEFAULT_MRIO_YEAR,
+    industry_matrix=True,
+    suffix=".parquet",
+)
+MRIO_CACHE_PATH_IND = _mrio_cache_path(DEFAULT_MRIO_YEAR, industry_matrix=True)
+
+# CIRCABC source URLs for the current FIGARO release.
 FLATFILE_URL = (
     "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
-    "library/ff0e2b4f-b572-424a-8f09-4b484ceabc7e/details?download=true"
+    "library/84c6c8cf-16f0-4e5b-8c0b-7125f7aa7df1/details?download=true"
 )
 INDUSTRY_MATRIX_URL = (
     "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
-    "library/56302478-664b-4a93-aa65-3d1ca73b1f4b/details?download=true"
+    "library/15c722eb-702b-42e0-b1c6-00e7dd3c3198/details?download=true"
 )
-FIGARO_DATABASE_URL = "https://ec.europa.eu/eurostat/web/esa-supply-use-input-output-tables/database"
 
 LEVELS = (0, 1, 2)
 
@@ -100,8 +133,8 @@ def load_classifications(
     code_prefix = "ind" if use_industry_matrix else "prd"
     class_codes = {}
     for code in ("use", "ava"):
-        class_codes[code] = pd.read_excel(
-            helpers_dir / f"class_{code_prefix}_{code}.xlsx",
+        class_codes[code] = pd.read_csv(
+            helpers_dir / f"class_{code_prefix}_{code}.csv",
             index_col=0,
         )
 
@@ -283,9 +316,7 @@ def download_file(url: str, path: Path) -> None:
     except Exception:
         raise FileNotFoundError(
             f"Could not download file from: {url}\n"
-            "CIRCABC direct links can change or require browser access.\n"
-            f"Download the FIGARO 2025 flatfile manually from {FIGARO_DATABASE_URL}\n"
-            f"and place it at: {path}"
+            f"Please download manually and place it at: {path}"
         )
 
     # look for likely download links
@@ -299,33 +330,37 @@ def download_file(url: str, path: Path) -> None:
 
     raise FileNotFoundError(
         f"Could not download file from: {url}\n"
-        "CIRCABC direct links can change or require browser access.\n"
-        f"Download the FIGARO 2025 flatfile manually from {FIGARO_DATABASE_URL}\n"
-        f"and place it at: {path}"
+        f"Please download manually and place it at: {path}"
     )
 
-def simplify_regions(df: pd.DataFrame, *, CORE: set[str], EU_OFC: set[str]) -> pd.DataFrame:
-    def classify(code):
-        if pd.isna(code):
-            return "ROW"
-        c = str(code).strip()
-        if c in EU_OFC:
-            return "EU-OFC"
-        return c if c in CORE else "ROW"
+def simplify_regions(
+    df: pd.DataFrame,
+    *,
+    CORE: set[str],
+    year: int = 2023,
+) -> pd.DataFrame:
+    # Keep the original data blocks shared: copying all 11M rows before adding
+    # three derived columns creates a large, unnecessary peak in memory.
+    out = df.copy(deep=False)
 
-    out = df.copy()
-    out["origin_region"] = out["origin"].apply(classify)
-    out["destination_region"] = out["destination"].apply(classify)
-    out["year"] = 2023
+    def classify_series(values: pd.Series) -> pd.Series:
+        # Vectorized string operations avoid Series.apply(), which makes
+        # pandas/Arrow materialize an object array for the whole flatfile.
+        normalized = values.astype("string").str.strip()
+        return normalized.where(normalized.isin(CORE), "ROW")
+
+    out["origin_region"] = classify_series(out["origin"])
+    out["destination_region"] = classify_series(out["destination"])
+    out["year"] = year
     return out
 
 
 def build_mrio(df):
     aggregated = df.groupby([
-        "year", "prd_ava", "prd_use", 
+        "year", "prd_ava", "prd_use",
         "origin_region", "destination_region"
     ])["value"].sum().reset_index()
-    
+
     return aggregated.pivot_table(
         index=["origin_region", "prd_ava"],
         columns=["destination_region", "prd_use"],
@@ -333,24 +368,6 @@ def build_mrio(df):
         fill_value=0.0
     )
 
-def collapse_row(mrio):
-    row_mask = mrio.index.get_level_values("origin_region") == "ROW"
-    if row_mask.any():
-        mrio_no_row_rows = mrio[~row_mask]
-        row_totals = mrio[row_mask].sum()
-        row_index = pd.MultiIndex.from_tuples([("ImportROW", "*")], names=mrio.index.names)
-        row_df = pd.DataFrame([row_totals], index=row_index, columns=mrio.columns)
-        mrio = pd.concat([mrio_no_row_rows, row_df])
-    
-    col_mask = mrio.columns.get_level_values("destination_region") == "ROW"
-    if col_mask.any():
-        mrio_no_row_cols = mrio.loc[:, ~col_mask]
-        col_totals = mrio.loc[:, col_mask].sum(axis=1)
-        col_index = pd.MultiIndex.from_tuples([("ExportROW", "*")], names=mrio.columns.names)
-        col_df = pd.DataFrame(col_totals, index=mrio.index, columns=col_index)
-        mrio = pd.concat([mrio_no_row_cols, col_df], axis=1)
-    
-    return mrio
 
 # ==============================================================
 # 3) MRIO CACHE (long parquet for robust MultiIndex)
@@ -414,8 +431,8 @@ def check_industry_balance(IO: pd.DataFrame, ind_codes: list[str], tol=1e-6, ver
 # 5) MAIN (cache read default, cache write only when refresh_cache=True)
 # ==============================================================
 def build_or_load_mrio(
-    *, CORE: set[str], EU_OFC: set[str],
-    include_eu_ofc: bool = True,
+    *, CORE: set[str],
+    mrio_year: int = DEFAULT_MRIO_YEAR,
     use_industry_matrix: bool = False,
     download_matrix: bool = False,
     use_cache: bool = True,
@@ -430,9 +447,20 @@ def build_or_load_mrio(
     )
 
     # ---- cache read
-    cache_path = MRIO_CACHE_PATH_IND if use_industry_matrix else MRIO_CACHE_PATH
-    flat_path = FLATFILE_PATH_IND if use_industry_matrix else FLATFILE_PATH
-    parquet_path = PARQUET_PATH_IND if use_industry_matrix else PARQUET_PATH
+    cache_path = _mrio_cache_path(mrio_year, industry_matrix=use_industry_matrix)
+    flat_path = _mrio_file_path(
+        mrio_year,
+        industry_matrix=use_industry_matrix,
+        suffix=".csv",
+    )
+    parquet_path = _mrio_file_path(
+        mrio_year,
+        industry_matrix=use_industry_matrix,
+        suffix=".parquet",
+    )
+
+    print(f"MRIO year: {mrio_year}")
+    print(f"MRIO dataset directory: {project_relative_path(MRIO_DATA_DIR / str(mrio_year))}")
 
     if use_cache and cache_path.exists() and not refresh_cache:
         print(f"Loading cached MRIO: {cache_path.name}")
@@ -442,26 +470,13 @@ def build_or_load_mrio(
         if download_matrix and (not flat_path.exists()):
             label = "industry-by-industry" if use_industry_matrix else "product-by-product"
             print(f"Downloading {label} flatfile -> {flat_path.name}")
-            try:
-                download_file(INDUSTRY_MATRIX_URL if use_industry_matrix else FLATFILE_URL, flat_path)
-            except FileNotFoundError as exc:
-                if use_cache and cache_path.exists():
-                    print("Download failed; loading existing MRIO cache instead.")
-                    print(f"Cache used: {cache_path.name}")
-                    mrio = load_mrio_cache(cache_path)
-                    if validate:
-                        print("\nVALIDATION")
-                        print(f"MRIO sum: {mrio.to_numpy().sum():,.0f}")
-                        print(f"MRIO shape: {mrio.shape}")
-                        regions = sorted({str(x) for x in mrio.index.get_level_values("origin_region") if str(x)})
-                        industries = sorted({str(x) for x in mrio.index.get_level_values("prd_ava") if str(x)})
-                        print(f"Regions loaded ({len(regions)}): {regions}")
-                        print(f"Industries loaded ({len(industries)}): {industries}")
-                        _ = check_industry_balance(mrio, ind_codes, verbose=True)
-                    return mrio
-                raise exc
+            download_file(INDUSTRY_MATRIX_URL if use_industry_matrix else FLATFILE_URL, flat_path)
         df = load_data(flat_path, parquet_path, save_raw_parquet=save_raw_parquet)
-        df = simplify_regions(df, CORE=CORE, EU_OFC=(EU_OFC if include_eu_ofc else set()))
+        df = simplify_regions(
+            df,
+            CORE=CORE,
+            year=mrio_year,
+        )
 
         print("Building MRIO (groupby + pivot)...")
         mrio = build_mrio(df)
@@ -506,12 +521,15 @@ def _row_from_v(v_nj: pd.DataFrame, prd_ava_code: str) -> pd.Series:
 def calculate_A(IO):
     """
     Technical coefficients matrix A:
-        A_ij = Z_ij / X_i
-    where Z is the inter-industry block and X_i is total output
-    of industry i (row i sum over all uses).
+        A_ij = Z_ij / X_j
+
+    where:
+    - Z_ij is the intermediate input supplied by industry i
+      to industry j.
+    - X_j is the gross output of purchasing industry j.
     """
     row_prod = IO.index.get_level_values("prd_ava")
-    col_use  = IO.columns.get_level_values("prd_use")
+    col_use = IO.columns.get_level_values("prd_use")
 
     primary_ext = list(primary_inputs) + ["*"]
     ind_rows = IO.index[~row_prod.isin(primary_ext)]
@@ -520,35 +538,14 @@ def calculate_A(IO):
     ind_cols = IO.columns[~col_use.isin(final_ext)]
 
     Z = IO.loc[ind_rows, ind_cols].astype(float)
-    Xi = IO.loc[ind_rows].astype(float).sum(axis=1)
-    Xi = Xi.replace(0.0, np.nan)  # avoid division by zero
 
-    return Z.div(Xi, axis=0).fillna(0.0)
+    Xj = IO.loc[:, ind_cols].astype(float).sum(axis=0)
+    Xj = Xj.replace(0.0, np.nan)
 
-def select_A(
-    A_global: np.ndarray,
-    scope: Scope = "global",
-    local_indices: Optional[Sequence[int]] = None,
-) -> np.ndarray:
-    """
-    Return the technical coefficient matrix to use.
+    A = Z.div(Xj, axis=1).fillna(0.0)
 
-    - scope='global': returns A_global unchanged.
-    - scope='local': returns a submatrix A_local = A[local, local].
+    return A
 
-    local_indices: list/array of indices corresponding to the
-    industries in the local country/region.
-    """
-    if scope == "global":
-        return A_global
-
-    if scope == "local":
-        if local_indices is None:
-            raise ValueError("local_indices must be provided for scope='local'")
-        idx = np.asarray(local_indices)
-        return A_global[np.ix_(idx, idx)]
-
-    raise ValueError(f"Unknown scope: {scope}")
 
 def calculate_C(IO):
     """
@@ -582,94 +579,6 @@ def calculate_C(IO):
     return C
 
 
-def compute_eu27_labor_capital_ratio(
-    V_MRIO: pd.DataFrame,
-    EU27: set[str],
-    *,
-    origin_level: str = "origin_region",
-    dest_level: str = "destination_region",
-    prd_use_level: str = "prd_use",
-    prd_ava_level: str = "prd_ava",
-    labor_code: str = "D1",
-    capital_code: str = "B2A3G",
-    dest_scope: str = "eu27",  # "eu27" or "all"
-    agg: str = "mean",         # "mean" or "sum"
-    include_prd_use: list[str] | None = None,
-):
-    """
-    Build EU27-average labor/capital ratio by industry (prd_use).
-    - Sum D1 and B2A3G across EU27 origin regions to get vectors over columns.
-    - Optionally restrict destination_region to EU27, then aggregate by prd_use.
-    Returns DataFrame with columns: labor, capital, ratio.
-    """
-    if not isinstance(V_MRIO.index, pd.MultiIndex):
-        raise TypeError("V_MRIO.index must be a MultiIndex.")
-    if not isinstance(V_MRIO.columns, pd.MultiIndex):
-        raise TypeError("V_MRIO.columns must be a MultiIndex.")
-
-    idx = V_MRIO.index
-    cols = V_MRIO.columns
-
-    if origin_level not in idx.names or prd_ava_level not in idx.names:
-        raise KeyError(f"V_MRIO.index must include levels '{origin_level}' and '{prd_ava_level}'.")
-    if dest_level not in cols.names or prd_use_level not in cols.names:
-        raise KeyError(f"V_MRIO.columns must include levels '{dest_level}' and '{prd_use_level}'.")
-
-    origin = idx.get_level_values(origin_level).astype(str)
-    prd_ava = idx.get_level_values(prd_ava_level).astype(str)
-    prd_ava_norm = prd_ava.str.strip().str.upper()
-
-    def _sum_rows(code: str) -> pd.Series:
-        code = str(code).strip().upper()
-        eu_set = {str(x).strip() for x in EU27}
-
-        # prefer EU27 origins if present; otherwise fall back to all origins
-        has_eu_orig = origin.isin(eu_set).any()
-
-        def _mk_mask(use_eu: bool):
-            base = prd_ava_norm == code
-            if not base.any():
-                base = prd_ava_norm.str.startswith(code) | prd_ava_norm.str.contains(code)
-            if use_eu:
-                return base & origin.isin(eu_set)
-            return base
-
-        mask = _mk_mask(use_eu=has_eu_orig)
-        if not mask.any():
-            # fallback to all origins if EU27 filter was too strict
-            mask = _mk_mask(use_eu=False)
-
-        if not mask.any():
-            sample = sorted(set(prd_ava_norm.unique()))[:30]
-            raise KeyError(
-                f"No rows found for prd_ava='{code}'. "
-                f"Sample prd_ava values: {sample}"
-            )
-        return V_MRIO.loc[mask].sum(axis=0)
-
-    labor_vec = _sum_rows(labor_code)
-    cap_vec = _sum_rows(capital_code)
-
-    df = pd.DataFrame({"labor": labor_vec, "capital": cap_vec})
-
-    if dest_scope == "eu27":
-        dest = df.index.get_level_values(dest_level).astype(str)
-        df = df[dest.isin({str(x) for x in EU27})]
-
-    if include_prd_use is not None:
-        keep = {str(x) for x in include_prd_use}
-        df = df[df.index.get_level_values(prd_use_level).astype(str).isin(keep)]
-
-    df["ratio"] = df["labor"] / df["capital"].replace(0, np.nan)
-
-    if agg == "sum":
-        out = df.groupby(level=prd_use_level)[["labor", "capital"]].sum()
-        out["ratio"] = out["labor"] / out["capital"].replace(0, np.nan)
-    else:
-        out = df.groupby(level=prd_use_level)[["labor", "capital", "ratio"]].mean()
-
-    out = out.replace([np.inf, -np.inf], np.nan).fillna(0.0)
-    return out
 def plot_lb_box_all_industries(
     series: pd.Series,
     *,
@@ -679,6 +588,7 @@ def plot_lb_box_all_industries(
     stat: str = "median",
     highlight: tuple[str, ...] = (),
     show_fliers: bool = False,
+    value_scale: float = 1.0,
     fig_w: float = 14.0,
     fig_h: float = 5.0,
     dpi: int = 150,
@@ -698,13 +608,12 @@ def plot_lb_box_all_industries(
     s = pd.to_numeric(series, errors="coerce")
     df = s.reset_index()
     val_col = df.columns[-1]
-    df["value"] = pd.to_numeric(df[val_col], errors="coerce")
+    if value_scale <= 0:
+        raise ValueError("value_scale must be positive.")
+    df["value"] = pd.to_numeric(df[val_col], errors="coerce") / value_scale
     df["destination_region"] = df["destination_region"].astype(str).str.strip()
     df["prd_use"] = df["prd_use"].astype(str)
     df = df[df["value"] > 0].copy()
-    # Drop EU-OFC entirely
-    df = df[~df["destination_region"].isin({"EU-OFC", "EU_OFC"})].copy()
-
     if countries is not None and europe_group is None:
         df = df[df["destination_region"].isin(countries)].copy()
 
@@ -752,6 +661,8 @@ def plot_lb_box_all_industries(
     for b in bp["boxes"]:
         b.set_facecolor("white")
         b.set_edgecolor("black")
+    for median in bp["medians"]:
+        median.set_color("#8B0000")
 
     # highlight selected countries
     if highlight:
@@ -797,6 +708,73 @@ def calculate_vn_pj(IO):
     Xj = Xj.replace(0.0, np.nan)
     out = V.div(Xj, axis=1).fillna(0.0)
     return out
+
+
+def validate_mrio_coefficients(
+    A: pd.DataFrame,
+    V: pd.DataFrame,
+    VA: pd.Series,
+    *,
+    atol: float = 1e-8,
+    rtol: float = 1e-8,
+) -> pd.DataFrame:
+    """Validate column accounting without changing any coefficients."""
+    if not A.columns.equals(V.columns):
+        raise ValueError("A and V do not have identical industry-column indices.")
+    if set(A.index) != set(A.columns):
+        raise ValueError("A is not square on the same country-industry index.")
+    if set(VA.index) != set(A.columns):
+        raise ValueError("VA and MRIO coefficient columns do not have the same industry index.")
+
+    va = pd.to_numeric(VA, errors="coerce").reindex(A.columns)
+    if va.isna().any():
+        missing = va.index[va.isna()].tolist()[:5]
+        raise ValueError(f"VA is missing aligned industry coefficients, e.g. {missing}.")
+
+    codes = V.index.get_level_values("prd_ava").astype(str)
+
+    def _rows(code: str) -> pd.Series:
+        mask = codes == str(code)
+        return V.loc[mask].sum(axis=0) if mask.any() else pd.Series(0.0, index=V.columns)
+
+    va_expected = sum((_rows(code) for code in ("D1", "B2A3G", "D29X39", "D21X31")),
+                      start=pd.Series(0.0, index=V.columns))
+    va_difference = va - va_expected
+    if not np.allclose(va.to_numpy(), va_expected.to_numpy(), atol=atol, rtol=rtol):
+        top = va_difference.abs().sort_values(ascending=False).head(5)
+        raise ValueError(
+            "VA_MRIO does not equal D1+B2A3G+D29X39+D21X31. "
+            f"Largest differences: {top.to_dict()}"
+        )
+
+    op = _rows("OP_RES") + _rows("OP_NRES")
+    if op.abs().max() > atol:
+        warnings.warn(
+            "OP_RES/OP_NRES are present in V but excluded from TiVA value added; "
+            "this is intentional.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    residual = 1.0 - A.sum(axis=0) - va
+    nonzero_output = (A.abs().sum(axis=0) + V.abs().sum(axis=0)) > atol
+    zero_output = residual.index[~nonzero_output]
+    if len(zero_output):
+        warnings.warn(
+            f"{len(zero_output)} MRIO industry columns have zero gross output; "
+            f"examples: {list(zero_output[:5])}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    bad = residual[nonzero_output].abs() > (atol + rtol)
+    if bad.any():
+        raise ValueError(
+            "Material MRIO coefficient-accounting residuals found. "
+            f"Largest country-industries: {residual[nonzero_output][bad].abs().nlargest(5).to_dict()}"
+        )
+
+    return pd.DataFrame({"residual": residual, "nonzero_output": nonzero_output})
 
 def calculate_L(A, V, C, system_type=1):
     """
@@ -851,7 +829,7 @@ def calculate_L(A, V, C, system_type=1):
         A_ext.loc[:, "Con"] = 0.0
         A_ext.loc[industries, "Con"] = c.values
         A_ext.loc["Compensation of Employees", "Con"] = 0.0
-        
+
         L_ext = np.linalg.inv(np.eye(A_ext.shape[0]) - A_ext.values)
         return pd.DataFrame(L_ext, index=A_ext.index, columns=A_ext.columns)
 
@@ -884,53 +862,28 @@ def calculate_L_truncated(A: pd.DataFrame, K: int = 3) -> pd.DataFrame:
 # ======================================================
 # Extract E (Compensations)
 # ======================================================
-def extract_E(IO: pd.DataFrame, row_name: str = "D1") -> pd.Series:
-    """
-    Extract 'Compensation of employees' (row prd_ava == row_name) over industry columns.
-    Returns a Series indexed by MRIO industry columns (destination_region, prd_use, ...).
+
+
+def extract_gva_basic(IO: pd.DataFrame) -> pd.Series:
+    """Return country-industry GVA at basic prices in FIGARO million EUR.
+
+    This is an accounting-level amount, not a primary-input coefficient. It
+    therefore remains suitable for transparent FTE40 allocation weights and
+    C2 reporting. Product taxes (D21X31) are intentionally excluded.
     """
     col_use = IO.columns.get_level_values("prd_use")
-    final_ext = list(map(str, final_codes)) + ["*"]  # expects final_codes in scope
-
-    ind_col_mask = ~col_use.isin(final_ext)
-    industry_columns = IO.columns[ind_col_mask]
-
-    row_prod = IO.index.get_level_values("prd_ava").astype(str).str.strip()
-    row_mask = (row_prod == str(row_name).strip())
-    if not row_mask.any():
-        raise KeyError(f"No row found with prd_ava == '{row_name}'")
-
-    E_data = IO.loc[row_mask, industry_columns]
-    if len(E_data) > 1:
-        E_data = E_data.sum(axis=0)
-    if isinstance(E_data, pd.DataFrame):
-        E_data = E_data.iloc[0] if len(E_data) == 1 else E_data.sum()
-
-    return E_data
-
-def deep_round_share_colsum(A: pd.DataFrame, K: int = 3) -> float:
-    industries = [idx for idx in A.index if idx in A.columns]
-    if len(industries) == 0:
-        raise ValueError("No common industries between A.index and A.columns.")
-
-    A_core = A.loc[industries, industries].astype(float)
-    A_mat = A_core.to_numpy()
-    I = np.eye(A_mat.shape[0])
-
-    L_full = np.linalg.inv(I - A_mat)
-    L_K = calculate_L_truncated(A_core, K=K).to_numpy()
-
-    # total requirement per column (final demand in each industry)
-    m_full = L_full.sum(axis=0)
-    m_trunc = L_K.sum(axis=0)
-
-    # share of mass beyond K using L1 (sum) over columns
-    full = np.sum(m_full)
-    trunc = np.sum(m_trunc)
-    return float(max(0.0, 1.0 - trunc / full))
+    industry_columns = IO.columns[~col_use.isin(list(map(str, final_codes)) + ["*"])]
+    row_codes = IO.index.get_level_values("prd_ava").astype(str).str.strip()
+    result = pd.Series(0.0, index=industry_columns, dtype=float)
+    for code in ("D1", "B2A3G", "D29X39"):
+        mask = row_codes == code
+        if mask.any():
+            result = result.add(IO.loc[mask, industry_columns].sum(axis=0), fill_value=0.0)
+    result.name = "FIGARO_GVA"
+    return result
 
 
-import pandas as pd
+
 from typing import Mapping
 
 def compute_full_effects_mrio(
@@ -944,6 +897,13 @@ def compute_full_effects_mrio(
     LB: pd.Series | None = None,
     W: pd.Series | None = None,
 ):
+    """Compute output, GVA, income, and employment effects.
+
+    ``W`` is retained as the public argument name for compatibility, but it
+    now contains FTE coefficients expressed as FTE per million EUR of gross
+    output.  Employment is therefore obtained by converting output to million
+    EUR and multiplying it by ``W``.
+    """
     # --- allow MRIO direct mode ---
     if L1 is None or VA is None or LB is None:
         # fallback to old dict behavior
@@ -976,8 +936,15 @@ def compute_full_effects_mrio(
     earn_df = out_df.mul(LB, axis=0)
 
     if W is not None:
-        wages = pd.to_numeric(W, errors="coerce").reindex(out_df.index).fillna(0.0).replace(0.0, np.nan)
-        jobs_df = earn_df.divide(wages, axis=0).replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        fte_coefficients = (
+            pd.to_numeric(W, errors="coerce")
+            .reindex(out_df.index)
+            .fillna(0.0)
+        )
+        # ``out_df`` is expressed in EUR, while the FTE coefficients are
+        # expressed per million EUR of output.  Convert the output base before
+        # applying the coefficient so Jobs remain in FTE per year.
+        jobs_df = out_df.mul(fte_coefficients / 1_000_000.0, axis=0)
     else:
         jobs_df = pd.DataFrame(0.0, index=out_df.index, columns=["Direct","Indirect", "Total"])
 
@@ -1166,10 +1133,10 @@ def compute_all_results(
 ) -> tuple[dict, dict, dict, dict]:
     """
     Compute all MRIO results for component groups and subcomponents.
-    
+
     Returns a tuple of 4 dictionaries:
         (results_lvl, results_sub_lvl, results_by_origin_lvl, results_by_origin_sub_lvl)
-    
+
     Parameters
     ----------
     y_shock_lvl : dict
@@ -1182,7 +1149,7 @@ def compute_all_results(
         MRIO matrices for Leontief, Value Added, Labor, and Wages
     levels : tuple
         Levels to process (default: LEVELS = (0, 1, 2))
-    
+
     Returns
     -------
     results_lvl : dict
@@ -1223,6 +1190,92 @@ def compute_all_results(
     return results_lvl, results_sub_lvl, results_by_origin_lvl, results_by_origin_sub_lvl
 
 
+def validate_global_mrio_results(
+    y_by_deployment: Mapping[str, pd.Series],
+    results_total: pd.DataFrame,
+    results_by_origin_total: pd.DataFrame,
+    component_results: Mapping,
+    L1: pd.DataFrame,
+    A: pd.DataFrame,
+    VA: pd.Series,
+    *,
+    atol: float = 1e-6,
+    rtol: float = 1e-9,
+) -> None:
+    """Validate aggregate Type I MRIO identities once per deployment."""
+    if not isinstance(L1.index, pd.MultiIndex) or not isinstance(L1.columns, pd.MultiIndex):
+        return
+    regions = set(map(str, L1.columns.get_level_values(0)))
+    if "ROW" not in regions or len(regions) < 2:
+        return
+    if list(A.index) != list(L1.index) or list(A.columns) != list(L1.columns):
+        raise ValueError("A and L1 industry indices are not aligned.")
+
+    va = pd.to_numeric(VA, errors="coerce").reindex(A.columns)
+    residual = 1.0 - A.sum(axis=0) - va
+
+    def _close(label: str, left: float, right: float) -> None:
+        if not np.isclose(left, right, atol=atol, rtol=rtol):
+            raise ValueError(f"Global MRIO accounting check failed for {label}: {left} vs {right}.")
+
+    def _result_row(df: pd.DataFrame, deployment: str) -> pd.Series:
+        rows = df[df["Country"].astype(str) == str(deployment)]
+        if len(rows) != 1:
+            raise ValueError(f"Expected one aggregate result row for deployment {deployment}, found {len(rows)}.")
+        return rows.iloc[0]
+
+    for deployment, y0 in y_by_deployment.items():
+        y = pd.to_numeric(y0, errors="coerce").fillna(0.0).reindex(L1.columns).fillna(0.0)
+        x = L1.dot(y)
+        x_col = x.reindex(A.columns)
+        x_from_a = A.dot(x_col) + y.reindex(A.columns).fillna(0.0)
+        if not np.allclose(x.to_numpy(), L1.dot(y).to_numpy(), atol=atol, rtol=rtol):
+            raise ValueError(f"Global MRIO check failed for x=L@y in deployment {deployment}.")
+        if not np.allclose(x_col.to_numpy(), x_from_a.to_numpy(), atol=atol, rtol=rtol):
+            raise ValueError(f"Global MRIO check failed for x=A@x+y in deployment {deployment}.")
+
+        row = _result_row(results_total, deployment)
+        _close("Output split", float(row["Output_Direct"] + row["Output_Indirect"]), float(row["Output_Total"]))
+        _close("GVA split", float(row["GVA_Direct"] + row["GVA_Indirect"]), float(row["GVA_Total"]))
+        _close("Output total", float(x.sum()), float(row["Output_Total"]))
+        _close("GVA total", float((va * x_col).sum()), float(row["GVA_Total"]))
+
+        direct_output = float(y.sum())
+        gva_total = float((va * x_col).sum())
+        gva_gap = direct_output - gva_total
+        residual_gap = float((residual * x_col).sum())
+        unexplained = gva_gap - residual_gap
+        if not np.isclose(unexplained, 0.0, atol=atol, rtol=rtol):
+            raise ValueError(
+                f"Unexplained global GVA residual for {deployment}: "
+                f"{unexplained:,.6f}."
+            )
+        if not np.isclose(gva_gap, 0.0, atol=atol, rtol=rtol):
+            top = (residual * x_col).abs().sort_values(ascending=False).head(5)
+            relative = abs(gva_gap) / abs(direct_output) if direct_output else 0.0
+            warnings.warn(
+                f"Global GVA reconciliation for {deployment}: absolute discrepancy="
+                f"{abs(gva_gap):,.6f}, relative discrepancy={relative:.6%}; "
+                f"explained by accounting residuals, largest country-industries={top.to_dict()}",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+        regional = results_by_origin_total[
+            results_by_origin_total["Deployment"].astype(str) == str(deployment)
+        ]
+        for col in ("Output_Direct", "Output_Indirect", "Output_Total", "GVA_Direct", "GVA_Indirect", "GVA_Total"):
+            _close(f"regional sum {col}", float(regional[col].sum()), float(row[col]))
+
+        component_frames = [
+            frame for key, frame in component_results.items()
+            if not (key == "Total" or (isinstance(key, tuple) and key and key[0] == "Total"))
+        ]
+        for col in ("Output_Direct", "Output_Indirect", "Output_Total", "GVA_Direct", "GVA_Indirect", "GVA_Total"):
+            component_sum = sum(float(_result_row(frame, deployment)[col]) for frame in component_frames)
+            _close(f"component sum {col}", component_sum, float(row[col]))
+
+
 def make_final_demand_vector(
     MRIO: pd.DataFrame,
     final_cost_df: pd.DataFrame,
@@ -1232,6 +1285,7 @@ def make_final_demand_vector(
     level: int = 1,
     lifetime_years: int=25,
     mode: str = "total",
+    gross_output: pd.Series | None = None,
 ) -> pd.Series:
     if mode not in {"total", "annual"}:
         raise ValueError("mode must be either 'total' or 'annual'.")
@@ -1293,19 +1347,103 @@ def make_final_demand_vector(
 
     by_src_ind = df.groupby(["origin_country", "industry_code"])["value_alloc"].sum()
 
+    allocated_total = float(by_src_ind.sum())
     if mode == "annual":
         by_src_ind = by_src_ind / float(lifetime_years)
+        allocated_total /= float(lifetime_years)
 
     y = pd.Series(0.0, index=mold, name="final_demand")
 
     by_src_ind.index = pd.MultiIndex.from_tuples(
         by_src_ind.index, names=[idx.names[0], idx.names[1]]
     )
-    y.update(by_src_ind.reindex(y.index).fillna(0.0))
+    missing = by_src_ind.index.difference(y.index)
+    if len(missing):
+        lost = float(by_src_ind.reindex(missing).sum())
+        raise ValueError(
+            f"Final-demand mapping lost {lost:,.6f} for deployment "
+            f"{deployment_country}; missing country-industry combinations: "
+            f"{list(missing[:5])}"
+        )
+
+    mapped = by_src_ind.reindex(y.index).fillna(0.0)
+    if not np.isclose(float(mapped.sum()), allocated_total, atol=1e-6, rtol=1e-10):
+        raise ValueError(
+            f"Final-demand mapping total mismatch for {deployment_country}: "
+            f"allocated={allocated_total:,.6f}, mapped={float(mapped.sum()):,.6f}."
+        )
+    y.update(mapped)
+
+    if gross_output is None:
+        gross_output_use = pd.to_numeric(MRIO.sum(axis=1), errors="coerce")
+    else:
+        gross_output_use = pd.to_numeric(gross_output, errors="coerce")
+    gross_output_use = gross_output_use.reindex(y.index).fillna(0.0)
+    zero_output = y.index[(y.abs() > 1e-12) & (gross_output_use.abs() <= 1e-12)]
+    if len(zero_output):
+        zero_value = float(y.reindex(zero_output).sum())
+        warnings.warn(
+            f"Final demand for {deployment_country} includes zero-output "
+            f"country-industries totaling {zero_value:,.6f}: {list(zero_output[:5])}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     return y
 
-def pick_lvl(d: dict, lvl: int):
-    return {} if not d else (d[lvl] if isinstance(next(iter(d)), int) else d)
+
+_ZERO_OUTPUT_INDUSTRY_FALLBACKS = {
+    ("JP", "C33"): "C27",
+    ("CA", "C33"): "C27",
+}
+
+
+def _apply_zero_output_industry_fallbacks(
+    final_cost_df: pd.DataFrame,
+    mrio: pd.DataFrame,
+    *,
+    verbose: bool = True,
+) -> pd.DataFrame:
+    """Apply the two explicit zero-output mappings before demand-vector construction."""
+    if not isinstance(mrio.index, pd.MultiIndex) or mrio.index.nlevels < 2:
+        raise ValueError("MRIO.index must be a country-industry MultiIndex for zero-output fallbacks.")
+
+    country = mrio.index.get_level_values(0).astype(str).str.strip()
+    industry = mrio.index.get_level_values(1).astype(str).str.strip()
+    industry_base = industry.str.replace(r"^CPA_", "", regex=True)
+    gross_output = pd.to_numeric(mrio.sum(axis=1), errors="coerce").fillna(0.0)
+    code_values = set(final_cost_df["industry_code"].astype(str).str.strip())
+    corrected = final_cost_df.copy()
+    summaries = []
+
+    for (country_code, source), target in _ZERO_OUTPUT_INDUSTRY_FALLBACKS.items():
+        source_code = source if source in code_values else f"CPA_{source}" if f"CPA_{source}" in code_values else source
+        target_code = f"CPA_{target}" if source_code.startswith("CPA_") else target
+        source_output = float(gross_output[(country == country_code) & (industry_base == source)].sum())
+        target_output = float(gross_output[(country == country_code) & (industry_base == target)].sum())
+
+        if source_output > 1e-12:
+            continue
+        if target_output <= 1e-12:
+            raise ValueError(
+                f"Cannot apply fallback {country_code}-{source}->{target}: "
+                "replacement output is not positive."
+            )
+
+        mask = (
+            corrected["origin_country"].astype(str).str.strip().eq(country_code)
+            & corrected["industry_code"].astype(str).str.strip().eq(source_code)
+        )
+        amount = float(corrected.loc[mask, "value_alloc"].sum())
+        if mask.any():
+            corrected.loc[mask, "industry_code"] = target_code
+            summaries.append((country_code, source_code, target_code, amount))
+
+    if summaries:
+        keys = [column for column in corrected.columns if column != "value_alloc"]
+        corrected = corrected.groupby(keys, as_index=False, dropna=False)["value_alloc"].sum()
+
+    return corrected
+
 
 def _lvl_cols(lvl: int):
     return f"component_group_L{lvl}", f"sub_component_L{lvl}"
@@ -1323,7 +1461,14 @@ def _sum_y_by_dep(d: dict[str, dict[str, pd.Series]]) -> dict[str, pd.Series]:
     return {dep: sum((d[cg][dep] for cg in d), start=z.copy()) for dep in deps}
 
 
-def build_y_shock_levels(df: pd.DataFrame, core: List[str],mrio: pd.DataFrame):
+def build_y_shock_levels(
+    df: pd.DataFrame,
+    core: List[str],
+    mrio: pd.DataFrame,
+    *,
+    verbose: bool = True,
+):
+    df = _apply_zero_output_industry_fallbacks(df, mrio, verbose=verbose)
     y_cg, y_sub = {}, {}
     for lvl in LEVELS:
         cg_col, sc_col = _lvl_cols(lvl)
@@ -1355,159 +1500,10 @@ def build_y_shock_levels(df: pd.DataFrame, core: List[str],mrio: pd.DataFrame):
 # ============================================================================
 
 
-def industry_country_matrix(
-    detailed_df: pd.DataFrame,
-    *,
-    deployment: str,
-    metric: str,                    # "Output" | "GVA" | "Income" | "Jobs"
-    effect: str,                    # "Direct" | "Indirect" | "Total"
-    year: int | None = None,
-    industry_col: str | None = None,  # "prd_ava_label" or "prd_ava"
-    top_industries: int | None = None, # keep top N industries by sum (optional)
-    top_countries: int | None = None,  # keep top N countries by sum (optional)
-    round_0: bool = True,
-    scale_money_to_kEUR: bool = True,
-) -> pd.DataFrame:
-    """
-    Returns a pivot matrix with:
-      - rows: industries
-      - cols: origin countries
-      - values: chosen metric & effect (absolute)
-    """
-    col = f"{metric}_{effect}"
-
-    df = detailed_df.loc[detailed_df["Deployment"] == deployment].copy()
-    if year is not None and "Year" in df.columns:
-        df = df.loc[df["Year"] == year].copy()
-    if df.empty:
-        raise ValueError(
-            f"No rows for Deployment == {deployment!r}" + (f" and Year == {year}" if year is not None else "")
-        )
-
-    ind_col = industry_col or ("prd_ava_label" if "prd_ava_label" in df.columns else "prd_ava")
-
-    # Pivot: industry x country
-    M = (
-        df.pivot_table(
-            index=ind_col,
-            columns="origin_country",
-            values=col,
-            aggfunc="sum",
-            fill_value=0.0,
-            observed=False
-        )
-    )
-
-    # Scale to k€ for monetary metrics
-    if metric != "Jobs" and scale_money_to_kEUR:
-        M = M / 1_000.0
-
-    # Drop all-zero rows/cols
-    M = M.loc[M.sum(axis=1) != 0, M.sum(axis=0) != 0].copy()
-
-    # Optional trimming (top industries / countries by total contribution)
-    if top_industries is not None and len(M.index) > top_industries:
-        keep_i = M.sum(axis=1).sort_values(ascending=False).head(top_industries).index
-        M = M.loc[keep_i]
-    if top_countries is not None and len(M.columns) > top_countries:
-        keep_c = M.sum(axis=0).sort_values(ascending=False).head(top_countries).index
-        M = M[keep_c]
-
-    # Round
-    if round_0:
-        M = M.round(0)
-
-    # Sort rows/cols by totals (nice default)
-    M = M.loc[M.sum(axis=1).sort_values(ascending=False).index,
-              M.sum(axis=0).sort_values(ascending=False).index]
-
-    return M
 
 
-def detailed_impacts_by_origin_sector(
-    y_by_deployment,
-    *,
-    year,
-    L1,
-    VA,
-    LB,
-    W,
-    ind_labels=None
-):
-    rows = []
-    for dep, y in y_by_deployment.items():
-        eff = compute_full_effects_mrio(None, None, None, y, L1=L1, VA=VA, LB=LB, W=W)
-
-        # stack metrics/types into one df indexed by (origin, prd_ava)
-        s = {}
-        for met in ["Output", "GVA", "Income", "Jobs"]:
-            for t in ["Direct", "Indirect", "Total"]:
-                s[f"{met}_{t}"] = eff[met][t]
-        df = pd.DataFrame(s)
-        df = df[df.abs().sum(1) > 0].reset_index()
-        df.columns = ["origin_country", "prd_ava"] + list(df.columns[2:])
-
-        if ind_labels is not None:
-            df["prd_ava_label"] = df["prd_ava"].astype(str).map(ind_labels).fillna(df["prd_ava"].astype(str))
-
-        df.insert(0, "Deployment", dep)
-        df.insert(1, "Year", year)
-        rows.append(df)
-
-    return pd.concat(rows, ignore_index=True)
 
 
 def cap_label(s: str, max_chars: int) -> str:
     s = str(s)
     return s if len(s) <= max_chars else s[: max_chars - 1] + "…"
-
-
-def map_and_cap_industry(
-    s: pd.Series,
-    ind_labels: dict,
-    max_chars: int = 32,
-) -> pd.Series:
-    return (
-        s.map(ind_labels).fillna(s)
-         .map(lambda x: cap_label(x, max_chars))
-    )
-
-
-def trace_indirect_sources(
-    *,
-    target_origin: str,
-    target_cpa: str,
-    deployment: str,
-    y_by_deployment: dict[str, pd.Series],   # e.g. y_shock_lvl[lvl]["Total"]
-    L1: pd.DataFrame,
-    ind_labels: dict | None = None,
-    top_n: int = 20,
-    exclude_self: bool = True,
-    max_chars: int = 34,
-) -> pd.DataFrame:
-
-    def _cap_label(x: str, n: int) -> str:
-        x = str(x)
-        return x if len(x) <= n else x[: n - 1] + "…"
-
-    def pretty_ind(code: str) -> str:
-        lab = ind_labels.get(code, code) if ind_labels else code
-        return _cap_label(lab, max_chars)
-
-    i_key = (str(target_origin), str(target_cpa))
-    if i_key not in L1.index:
-        raise ValueError(f"Target {i_key} not found in L1.index")
-
-    y = y_by_deployment[deployment].reindex(L1.columns).fillna(0.0)
-    if exclude_self and i_key in y.index:
-        y = y.copy()
-        y.loc[i_key] = 0.0
-
-    contrib = (L1.loc[i_key] * y)
-    out = (contrib[contrib > 0].nlargest(top_n).reset_index())
-    out.columns = ["source_origin", "source_cpa", "output_contribution"]
-
-    out["share_of_target_output"] = out["output_contribution"] / out["output_contribution"].sum()
-    out["source_industry"] = out["source_cpa"].astype(str).map(pretty_ind)
-
-    return out[["source_origin", "source_industry", "output_contribution", "share_of_target_output"]]

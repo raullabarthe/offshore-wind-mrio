@@ -7,13 +7,12 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import textwrap
 from matplotlib.ticker import PercentFormatter
 
-from modules.config import SAVE_FIGURES, CLOSE_FIGURES, CORE_DEPLOYMENT
-from modules.country import ROW_REST_OF_WORLD, canonical_name, EU27, CODE_TO_NAME, COLOR_MAP as COUNTRY_COLOR_MAP
+from modules.config import SAVE_FIGURES, CLOSE_FIGURES, project_relative_path
+from modules.country import canonical_name, EU27, CODE_TO_NAME, COLOR_MAP as COUNTRY_COLOR_MAP
 from modules.cost_model.charts import PALETTE_CARDO
 from modules.latex_style import (
     apply_house_style,
@@ -24,11 +23,14 @@ from modules.latex_style import (
     adjust_lightness,
     get_text_color,
 )
+from modules.impacts.impacts import _short_subcomponent_label
 
 FALLBACK_GREY = "#BDBDBD"
 EU_LABEL = "EU27"
 UK_LABEL = "United Kingdom"
-ROW_LABEL = "RoW"
+OTHER_EU27_LABEL = "Other EU27"
+OTHER_ORIGINS_LABEL = "Other origins"
+ROW_LABEL = "RoW residual"
 
 
 def _save_and_close_exact_aware(
@@ -57,7 +59,7 @@ def _save_and_close_exact_aware(
         except Exception:
             pass
         fig.savefig(outpath)
-        print(f"Saved to: {outpath}")
+        print(f"Saved to: {project_relative_path(outpath)}")
 
     if close:
         plt.close(fig)
@@ -76,6 +78,109 @@ CAT_ORDER = [
     "Other",
     "To review",
 ]
+
+
+def freq_costtype_to_latex(
+    df: pd.DataFrame,
+    *,
+    caption: str = "Supplier contracts by component, subcomponent, and deployment country.",
+    label: str = "tab:supplier_contracts_country",
+    tabcolsep: int = 2,
+    arraystretch: float = 1.0,
+    font_size: str = r"\scriptsize",
+) -> str:
+    """Export the pre-aggregated country contract table in the paper format."""
+    required = {"component", "subcomponent", "GB", "DE", "NL", "DK", "BE", "Grand Total"}
+    missing = sorted(required - set(df.columns))
+    if missing:
+        raise KeyError(f"supplier contract summary is missing columns: {missing}")
+
+    wide = df.copy()
+    category = wide["component"].astype(str)
+    total_mask = category.eq("Grand Total")
+    body = wide.loc[~total_mask].copy()
+    total_rows = wide.loc[total_mask]
+    if total_rows.empty:
+        raise ValueError("supplier contract summary has no Grand Total row")
+    total_row = total_rows.iloc[0]
+
+    country_cols = ["GB", "DE", "NL", "DK", "BE"]
+    numeric_cols = country_cols + ["Grand Total"]
+    for column in numeric_cols:
+        body[column] = pd.to_numeric(body[column], errors="raise").astype(int)
+
+    def escape(value) -> str:
+        return str(value).replace("&", r"\&")
+
+    colfmt = r"@{\extracolsep{\fill}}ll" + "r" * len(country_cols + ["Total"])
+    header = (
+        r"\multicolumn{1}{c}{\textbf{Category}} & "
+        r"\multicolumn{1}{c}{\textbf{Component}} & "
+        + " & ".join(
+            r"\multicolumn{1}{c}{\textbf{" + c + r"}}"
+            for c in country_cols + ["Total"]
+        )
+        + " \\\\"
+    )
+
+    lines = [r"\begingroup", font_size]
+    lines.extend([
+        rf"\setlength{{\tabcolsep}}{{{tabcolsep}pt}}",
+        rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}",
+        r"\setlength{\LTleft}{0pt}",
+        r"\setlength{\LTright}{0pt}",
+        r"\begin{longtable}{" + colfmt + r"}",
+        r"\toprule",
+        header,
+        r"\midrule",
+        r"\endfirsthead",
+        r"\toprule",
+        header,
+        r"\midrule",
+        r"\endhead",
+        r"\bottomrule",
+        r"\endfoot",
+        r"\bottomrule",
+        r"\endlastfoot",
+    ])
+
+    body["component_print"] = body["component"].where(
+        body["component"].ne(body["component"].shift()), ""
+    )
+    previous = None
+    for _, row in body.iterrows():
+        current = row["component"]
+        if previous is not None and current != previous:
+            lines.append(r"\midrule")
+        previous = current
+        values = [
+            escape(row["component_print"]),
+            escape(row["subcomponent"]),
+            *[int(row[column]) for column in country_cols],
+            int(row["Grand Total"]),
+        ]
+        lines.append(
+            f"{values[0]} & {values[1]} & "
+            + " & ".join(r"\num{" + str(value) + r"}" for value in values[2:])
+            + r" \\"
+        )
+
+    lines.extend([
+        r"\midrule",
+        r" & \textbf{Total} & "
+        + " & ".join(
+            r"{\bfseries\num{" + str(int(total_row[column])) + r"}}"
+            for column in country_cols + ["Grand Total"]
+        )
+        + r" \\",
+        r"\end{longtable}",
+        r"\endgroup",
+        "",
+        r"\addtocounter{table}{-1}",
+        r"\refstepcounter{table}\label{" + label + r"}",
+        r"Table \thetable: " + caption,
+    ])
+    return "\n".join(lines)
 
 
 def origin_family(origin):
@@ -169,14 +274,14 @@ def plot_alloc_share_stacked(
     M = M.groupby(level=0).sum()
 
     desired_order = [
-        "Indirect - Imports",
-        "Assembly - Imports",
-        "BoM - Imports",
         "Indirect - OEM",
+        "Indirect - Imports",
         "Assembly - OEM facility",
+        "Assembly - Imports",
         "BoM - OEM known supplier",
         "BoM - Unknown - OEM Inhouse",
         "BoM - Unknown - Outsourced",
+        "BoM - Imports",
     ]
 
     ordered_index = [k for k in desired_order if k in M.index] + [k for k in M.index if k not in desired_order]
@@ -280,44 +385,6 @@ def build_weighted_avg_flows_hier(
                     child_map[key] = child_map.get(key, 0.0) + (w / w_sum) * float(v)
 
     return out
-def build_costblock_hierarchy(
-    df_alloc: pd.DataFrame,
-    *,
-    cost_block: str = "conversion",
-    include_imports: bool = False,
-    component_groups: list | None = None,
-):
-    """
-    Build flows_hier dict for a single cost block using df_alloc.
-    """
-    cb = cost_block.lower().strip()
-    if cb in {"conversion", "assembly"}:
-        prefix = "Assembly"
-    elif cb == "indirect":
-        prefix = "Indirect"
-    else:
-        raise ValueError("cost_block must be 'conversion'/'assembly' or 'indirect'")
-
-    df = df_alloc.copy()
-    df = df[df["origin_type"].astype(str).str.startswith(prefix)]
-    if not include_imports:
-        df = df[~df["origin_type"].astype(str).str.contains("Imports", na=False)]
-
-    if component_groups:
-        df = df[df["component_group"].isin(component_groups)]
-
-    flows_hier = {}
-    for _, r in df.iterrows():
-        dep = str(r["deployment_country"])
-        comp = str(r["component_group"])
-        subc = str(r["sub_component"])
-        origin = str(r["origin_country"])
-        val = float(r["value_alloc"])
-
-        flows_hier.setdefault(dep, {}).setdefault(comp, {}).setdefault(subc, {})
-        flows_hier[dep][comp][subc][origin] = flows_hier[dep][comp][subc].get(origin, 0.0) + val
-
-    return flows_hier
 def plot_macro_vertical(
     flows_hier, *,
     dep_order=("GB","BE","NL","DK","DE"),
@@ -334,7 +401,7 @@ def plot_macro_vertical(
 ):
     """
     Plot macro-level vertical sourcing breakdown across deployment countries.
-    
+
     Parameters
     ----------
     flows_hier : dict
@@ -359,7 +426,7 @@ def plot_macro_vertical(
         Whether to save the figure
     close : bool, default True
         Whether to close the figure after saving
-    
+
     Returns
     -------
     str or tuple
@@ -368,9 +435,12 @@ def plot_macro_vertical(
     """
     set_house_style()
     split_names = split_names or {}
-    EU_DISPLAY = "Other EU27" if len(split_iso) > 0 else EU_LABEL
-
-    split_iso = tuple(str(c).strip() for c in (split_iso or ()))
+    split_iso = tuple(
+        code
+        for code in (str(c).strip().upper() for c in (split_iso or ()))
+        if code not in {"ROW", "X01"}
+    )
+    EU_DISPLAY = OTHER_EU27_LABEL if any(code in EU27 for code in split_iso) else EU_LABEL
     split_labels = [
         split_names.get(c) or CODE_TO_NAME.get(c) or canonical_name(c) or c
         for c in split_iso
@@ -379,29 +449,36 @@ def plot_macro_vertical(
     # Keep the United Kingdom and RoW at the end of the legend/order.
     norway_label = split_names.get("NO") or CODE_TO_NAME.get("NO", "Norway")
     origin_list = (
-        [EU_LABEL]
+        [EU_DISPLAY]
         + [l for l in split_labels if l != norway_label]
         + [UK_LABEL]
         + ([norway_label] if norway_label in split_labels else [])
-        + [ROW_LABEL]
+        + [ROW_LABEL, OTHER_ORIGINS_LABEL]
     )
 
     STYLE_MAP = {
         EU_LABEL: dict(fc=COUNTRY_COLOR_MAP.get("EU27") or COUNTRY_COLOR_MAP.get(EU_LABEL) or "#4C78A8", ec="#1F3A5F", ls="solid", lw=0.6),
+        OTHER_EU27_LABEL: dict(
+            fc=adjust_lightness(COUNTRY_COLOR_MAP.get("EU27") or COUNTRY_COLOR_MAP.get(EU_LABEL) or "#4C78A8", 0.45),
+            ec="#6B7FA3", ls="solid", lw=0.6,
+        ),
+        OTHER_ORIGINS_LABEL: dict(fc="black", ec="black", ls="solid", lw=0.6),
         UK_LABEL: dict(fc=COUNTRY_COLOR_MAP.get("GB") or "#5C1F1F", ec="#5C1F1F", ls="solid", lw=0.6),
         "Norway": dict(fc=COUNTRY_COLOR_MAP.get("NO") or "#2F6F6D", ec=COUNTRY_COLOR_MAP.get("NO") or "#2F6F6D", ls="solid", lw=0.6),
         ROW_LABEL: dict(fc="white", ec="black", ls=(0, (3, 2)), lw=0.6),
     }
 
     def _bucket(o):
-        o = str(o).strip()
-        if o == "GB":
+        o = str(o).strip().upper()
+        if o in {"ROW", "X01"}:
+            return ROW_LABEL
+        if o in {"GB", "UK"}:
             return UK_LABEL
         if o in split_iso:
             return split_names.get(o) or CODE_TO_NAME.get(o) or canonical_name(o) or o
         if o in EU27:
-            return EU_LABEL
-        return ROW_LABEL
+            return EU_DISPLAY
+        return OTHER_ORIGINS_LABEL
 
     def _color(label):
         if label == ROW_LABEL:
@@ -445,6 +522,16 @@ def plot_macro_vertical(
             for b in origin_list:
                 macro_tot[d][b] += macro_vals[c][d].get(b, 0.0)
 
+    origin_list = [
+        label for label in origin_list
+        if max(
+            (abs(float(macro_tot[d].get(label, 0.0))) for d in dep_order),
+            default=0.0,
+        ) > 1e-12
+    ]
+    if not origin_list:
+        raise ValueError("No nonzero sourcing-origin contributions to plot.")
+
     def _shares(bd):
         s = sum(bd.get(b, 0.0) for b in origin_list) or 1.0
         return [bd.get(b, 0.0) / s for b in origin_list]
@@ -484,7 +571,7 @@ def plot_macro_vertical(
             ls = st["ls"]
         else:
             fc = _color(lab)
-            ec = fc                  
+            ec = fc
             lw = 0.6
             ls = "solid"
 
@@ -508,7 +595,9 @@ def plot_macro_vertical(
             if w < 0.04:
                 cum += w
                 continue
-            if lab == ROW_LABEL:
+            if lab == OTHER_ORIGINS_LABEL:
+                tc = "white"
+            elif lab == ROW_LABEL:
                 tc = "black"
             elif lab in STYLE_MAP:
                 tc = get_text_color(STYLE_MAP[lab]["fc"])
@@ -555,7 +644,7 @@ def plot_macro_vertical(
                 linewidth=lw,
                 linestyle=ls,
                 label=tex_safe(
-                    EU_DISPLAY if lab == EU_LABEL else ("GB" if lab in {"UK","GB"} else lab)
+                    EU_DISPLAY if lab in {EU_LABEL, OTHER_EU27_LABEL} else ("GB" if lab in {"UK","GB"} else lab)
                 ),
             )
         )
@@ -564,8 +653,8 @@ def plot_macro_vertical(
         title=tex_bold("Origin"),
         bbox_to_anchor=(0.98, 0.5),
         loc="center left",
-        fontsize=10,
-        title_fontsize=10,
+        fontsize=7,
+        title_fontsize=7,
         frameon=True,
         framealpha=0.9,
         facecolor="white",
@@ -576,7 +665,7 @@ def plot_macro_vertical(
     ax.grid(axis="y", alpha=0.2, linestyle=":", linewidth=0.5)
     ax.set_title(None)
     fig.tight_layout()
-    
+
     # Save and close if filename provided
     if filename is not None:
         result = _save_and_close_exact_aware(
@@ -591,10 +680,267 @@ def plot_macro_vertical(
         if close:
             plt.close(fig)
         return fig, ax
-        s = "offshore substation"
-    if s.endswith("cables"):
-        s = s[:-1]
-    return s
+
+
+
+def plot_eu27_weighted_sourcing(
+    flows_eu27_avg: dict,
+    *,
+    split_iso=(),
+    split_names=None,
+    figsize=(12.0617, 3.8818),
+    dpi=160,
+    filename="3.1_EU_weighted_sourcing.pdf",
+    save=SAVE_FIGURES,
+    close=CLOSE_FIGURES,
+    label_min_share: float = 0.04,
+):
+    """Plot sourcing-country shares using the capture-chart layout."""
+    set_house_style()
+
+    data = flows_eu27_avg["EU27_AVG"]
+    split_names = split_names or {}
+    split_iso = tuple(str(country).strip().upper() for country in (split_iso or ()))
+
+    if not 0 <= float(label_min_share) <= 1:
+        raise ValueError("label_min_share must be between 0 and 1.")
+    label_min_share = float(label_min_share)
+
+    split_labels = [
+        split_names.get(country) or CODE_TO_NAME.get(country) or canonical_name(country) or country
+        for country in split_iso
+    ]
+
+    has_eu_split = any(country in EU27 for country in split_iso)
+    eu_display = OTHER_EU27_LABEL if has_eu_split else EU_LABEL
+
+    row_label = "RoW"
+    origin_order = [EU_LABEL] + list(split_labels) + [row_label]
+
+    def _bucket(origin):
+        code = str(origin).strip().upper()
+        if code in split_iso:
+            return split_labels[split_iso.index(code)]
+        if code in EU27:
+            return EU_LABEL
+        return row_label
+
+    records = []
+    for component, subcomponents in data.items():
+        for subcomponent, origin_values in subcomponents.items():
+            values = defaultdict(float)
+            for origin, value in origin_values.items():
+                values[_bucket(origin)] += float(value)
+
+            total = sum(values.values())
+            if not np.isfinite(total) or total <= 0:
+                raise ValueError(
+                    f"Non-positive sourcing total for {component} / {subcomponent}: {total}"
+                )
+
+            shares = {label: values[label] / total for label in origin_order}
+            shares[origin_order[-1]] += 1.0 - sum(shares.values())
+
+            records.append({
+                "Component": str(component),
+                "Subcomponent": str(subcomponent),
+                **shares,
+            })
+
+    if not records:
+        raise ValueError("flows_eu27_avg['EU27_AVG'] contains no sourcing flows to plot.")
+
+    df_abs = pd.DataFrame(records)
+    df_abs["Component"] = df_abs["Component"].astype(str)
+    df_abs["Subcomponent"] = df_abs["Subcomponent"].astype(str)
+
+    pref = ["Devex", "Turbine", "BoP", "Installation", "O&M"]
+    comp_order = [c for c in pref if c in df_abs["Component"].unique().tolist()]
+    comp_order += [c for c in df_abs["Component"].unique().tolist() if c not in comp_order]
+
+    x, xt, centers, seps, rows, k = [], [], [], [], [], 0
+    for gi, component in enumerate(comp_order):
+        subdf = df_abs[df_abs["Component"] == component].sort_values(["Subcomponent"]).copy()
+        if subdf.empty:
+            continue
+
+        start = k
+        for _, row in subdf.iterrows():
+            x.append(k)
+            xt.append(row["Subcomponent"])
+            rows.append(row)
+            k += 1
+        end = k - 1
+
+        centers.append((component, (start + end) / 2))
+        if gi < len(comp_order) - 1:
+            seps.append(k)
+        k += 1
+
+    plot_df = pd.DataFrame(rows).reset_index(drop=True)
+    # Keep the legacy 3.1 layout, but do not retain a zero-sized "Other EU27"
+    # legend entry once every contributing EU27 origin is shown separately.
+    if has_eu_split and float(np.nanmax(np.abs(plot_df[EU_LABEL].to_numpy(dtype=float)))) <= 1e-12:
+        origin_order = [label for label in origin_order if label != EU_LABEL]
+    vals = plot_df[list(origin_order)].to_numpy(dtype=float)
+    xs = np.asarray(x[:vals.shape[0]], dtype=float)
+
+    style_map = {
+        EU_LABEL: dict(
+            fc=COUNTRY_COLOR_MAP.get("EU27") or COUNTRY_COLOR_MAP.get(EU_LABEL) or "#4C78A8",
+            ec="#1F3A5F",
+            ls="solid",
+            lw=0.6,
+        ),
+        row_label: dict(
+            fc="white",
+            ec="black",
+            ls=(0, (3, 2)),
+            lw=0.6,
+        ),
+    }
+
+    def _color(label):
+        if label == row_label:
+            return None
+
+        inverse = {
+            (split_names.get(country) or CODE_TO_NAME.get(country) or canonical_name(country) or country): country
+            for country in split_iso
+        }
+        iso = inverse.get(label, label)
+
+        return (
+            COUNTRY_COLOR_MAP.get(label)
+            or COUNTRY_COLOR_MAP.get(iso)
+            or COUNTRY_COLOR_MAP.get(str(iso))
+            or FALLBACK_GREY
+        )
+
+    def _style(label):
+        if label in style_map:
+            return style_map[label]
+        color = _color(label)
+        return dict(fc=color, ec=color, ls="solid", lw=0.6)
+
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+    bottoms = np.zeros(vals.shape[0])
+    for j, label in enumerate(origin_order):
+        segment = vals[:, j]
+        style = _style(label)
+        ax.bar(
+            xs,
+            segment,
+            bottom=bottoms,
+            width=0.85,
+            color=style["fc"],
+            edgecolor=style["ec"],
+            linewidth=style["lw"],
+            linestyle=style["ls"],
+        )
+        bottoms += segment
+
+    for i in range(vals.shape[0]):
+        cum = 0.0
+        for j, label in enumerate(origin_order):
+            share = float(vals[i, j])
+            if abs(share) < 1e-12:
+                continue
+            if share < label_min_share:
+                cum += share
+                continue
+
+            style = _style(label)
+            ax.text(
+                xs[i],
+                cum + share / 2,
+                tex_safe(f"{share * 100:.0f}%"),
+                ha="center",
+                va="center",
+                fontsize=9,
+            color="black" if label == row_label else get_text_color(style["fc"]),
+            )
+            cum += share
+
+    for separator in seps:
+        ax.axvline(separator, color="black", linewidth=1.0, linestyle="--", alpha=0.6)
+
+    ax.set_ylim(0, 1)
+    ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_yticklabels(
+        [tex_safe(label) for label in ("0%", "25%", "50%", "75%", "100%")],
+        fontsize=10,
+    )
+    ax.set_ylabel(tex_bold("Share of Tier-1 sourcing by origin"), fontsize=10)
+
+    ax.set_xticks(xs)
+    xt_disp = [_short_subcomponent_label(label) for label in xt[:vals.shape[0]]]
+    ax.set_xticklabels(
+        [tex_safe(label) for label in xt_disp],
+        fontsize=10,
+        rotation=45,
+        ha="right",
+    )
+    ax.tick_params(axis="x", length=0)
+
+    for component, center in centers:
+        ax.text(
+            center,
+            -0.29,
+            tex_safe(str(component)),
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+        )
+
+    legend_names = {
+        EU_LABEL: eu_display,
+        row_label: row_label,
+    }
+
+    patches = [
+        mpatches.Patch(
+            facecolor=_style(label)["fc"],
+            edgecolor=_style(label)["ec"],
+            linewidth=_style(label)["lw"],
+            linestyle=_style(label)["ls"],
+            label=tex_safe(legend_names.get(label, label)),
+        )
+        for label in origin_order
+    ]
+
+    ax.legend(
+        handles=patches,
+        title=tex_bold("Supplying country"),
+        bbox_to_anchor=(0.995, 0.5),
+        loc="center left",
+        fontsize=9,
+        title_fontsize=9,
+        frameon=True,
+        framealpha=0.9,
+        facecolor="#F2F2F2",
+        edgecolor="#BDBDBD",
+        borderpad=0.35,
+        labelspacing=0.35,
+        handletextpad=0.5,
+        borderaxespad=0.25,
+    )
+
+    apply_house_style(ax, grid=True)
+    ax.grid(axis="y", alpha=0.2, linestyle=":", linewidth=0.5)
+    ax.set_title(None)
+
+    # Ajuste manual para que ambos gráficos queden iguales,
+    # sin espacio excesivo a la derecha ni abajo.
+    fig.subplots_adjust(left=0.075, right=0.865, bottom=0.27, top=0.96)
+
+    if filename is None:
+        return fig, ax
+
+    return save_and_close(fig=fig, filename=filename, save=save, close=close)
 
 
 def _short_component_label(s: str) -> str:
@@ -607,47 +953,6 @@ def _short_component_label(s: str) -> str:
     return mapping.get(s, s)
 
 
-def _ordered_pairs_from_flows(
-    flows_hier: dict,
-    *,
-    deploy: str = "GB",
-    general_parents: tuple[str, ...] = ("Turbine",),
-    include_abex: bool = False,
-    parent_order: tuple[str, ...] | None = None,
-    exclude_parents: tuple[str, ...] = (),
-) -> list[tuple[str, str]]:
-    """
-    Build (Parent, Child) ordering consistent with plot_gb_local_benchmark.
-    """
-    df = build_gb_local_benchmark_table(
-        flows_hier,
-        deploy=deploy,
-        include_total=False,
-        general_parents=general_parents,
-        include_abex=include_abex,
-    )
-    if exclude_parents:
-        df = df.loc[~df["Parent"].isin(exclude_parents)].copy()
-
-    if parent_order is None:
-        parent_order = tuple(CAT_ORDER)
-    if exclude_parents:
-        parent_order = tuple(p for p in parent_order if p not in exclude_parents)
-    parent_order = [p for p in parent_order if p in df["Parent"].unique()]
-    remaining = [p for p in df["Parent"].unique() if p not in parent_order]
-    parent_order = parent_order + remaining
-
-    row_idx = []
-    for p in parent_order:
-        sub = df[df["Parent"] == p].copy()
-        if sub.empty:
-            continue
-        sub["_child_sort"] = sub["Child"].astype(str).str.casefold()
-        sub = sub.sort_values("_child_sort")
-        row_idx.extend(sub.index.tolist())
-    df = df.loc[row_idx].reset_index(drop=True)
-
-    return list(zip(df["Parent"].tolist(), df["Child"].tolist()))
 
 
 def _get_gb_inputs():

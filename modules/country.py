@@ -8,7 +8,6 @@ Transversal module used across supply chain and economic impact analysis.
 from __future__ import annotations
 
 from collections import defaultdict
-from matplotlib import colors as mcolors
 
 # ============================================================================
 # COUNTRY NAME TO ISO2 CODE MAPPING
@@ -31,7 +30,68 @@ NAME_TO_CODE = {
 # ISO2 CODE TO COUNTRY NAME MAPPING
 # ============================================================================
 
-CODE_TO_NAME = {v: k for k, v in NAME_TO_CODE.items()}
+# ============================================================================
+# ISO2 CODE TO COUNTRY DISPLAY NAME
+# ============================================================================
+
+# Standardized country names for figures, tables, and legends.
+# Independent of NAME_TO_CODE, which preserves supplier-source names.
+
+CODE_TO_NAME = {
+    "AE": "Arab Emirates",
+    "AT": "Austria",
+    "AU": "Australia",
+    "BA": "Bosnia and Herzegovina",
+    "BE": "Belgium",
+    "BG": "Bulgaria",
+    "BR": "Brazil",
+    "CA": "Canada",
+    "CH": "Switzerland",
+    "CN": "China",
+    "CY": "Cyprus",
+    "CZ": "Czech Republic",
+    "DE": "Germany",
+    "DK": "Denmark",
+    "EE": "Estonia",
+    "ES": "Spain",
+    "FI": "Finland",
+    "FR": "France",
+    "GB": "UK",
+    "GR": "Greece",
+    "HR": "Croatia",
+    "ID": "Indonesia",
+    "IE": "Ireland",
+    "IN": "India",
+    "IT": "Italy",
+    "JP": "Japan",
+    "KR": "South Korea",
+    "LI": "Liechtenstein",
+    "LT": "Lithuania",
+    "LU": "Luxembourg",
+    "LV": "Latvia",
+    "MT": "Malta",
+    "MX": "Mexico",
+    "MY": "Malaysia",
+    "NL": "Netherlands",
+    "NO": "Norway",
+    "OM": "Oman",
+    "PL": "Poland",
+    "PT": "Portugal",
+    "RO": "Romania",
+    "ROW": "RoW",
+    "RS": "Serbia",
+    "RU": "Russia",
+    "SE": "Sweden",
+    "SG": "Singapore",
+    "SI": "Slovenia",
+    "SK": "Slovakia",
+    "TH": "Thailand",
+    "TR": "Turkey",
+    "TW": "Taiwan",
+    "UA": "Ukraine",
+    "US": "USA",
+    "ZA": "South Africa",
+}
 
 # Regional aliases (used in disambiguation)
 REGION_ALIASES = {"Reunion", "Guernsey", "Åland Islands", "Jersey", "Isle of Man"}
@@ -101,7 +161,7 @@ ROW_REST_OF_WORLD = "RoW"
 
 # Country-specific colors (for maps, stacked charts, etc.)
 COLOR_MAP = {
-    "GB": "#760707",
+    "GB": "#7C0000",
     "DK": "#C90000",
     "DE": "#025F51",
     "NL": "#2A9D8F",
@@ -127,18 +187,20 @@ COLOR_MAP = {
     "CZ": "#4DAF4A",
     "EE": "#377EB8",
     "BG": "#984EA3",
-    "SG": "#9467BD",
+    "SG": "#2CCDBD",
     "AE": "#8DA0CB",
     "TW": "#E78AC3",
     "CN": "#B56100",
     "ID": "#E1C007",
     "ZA": "#0B8EC2",
-    "IN": "#894597",
-    "TR": "#7B3F00",
-    "CA": "#C85A17",
-    "US": "#65C3E9",
+    "IN": "#88C1947A",
+    "TR": "#3D2000",
+    "CA": "#341700",
+    "MX": "#135600",
+    "US": "#BFE6F6",
     "KR": "#FA7FCB",
-    "JP": "#CBCACA",
+    "RU": "#10009C",
+    "JP": "#F9CD5D",
     "BR": "#5F9745",
     "RoW": "#1A1818",
 }
@@ -171,27 +233,6 @@ def canonical_name(code: str) -> str:
     return names[0] if names else code
 
 
-def to_iso2(country: str) -> str | None:
-    """
-    Convert country name or code to ISO2 code.
-    
-    Parameters
-    ----------
-    country : str
-        Country name or existing ISO2 code
-        
-    Returns
-    -------
-    str or None
-        ISO2 code, or None if not found
-    """
-    if country is None or (isinstance(country, float) and country != country):  # NaN check
-        return None
-    
-    c = str(country).strip()
-    if len(c) == 2 and c.isupper():
-        return c
-    return NAME_TO_CODE.get(c, c)
 
 
 def normalize_country_code(code: str) -> str | None:

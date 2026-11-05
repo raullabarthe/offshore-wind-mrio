@@ -6,7 +6,6 @@ Módulo para análisis de supply chain de turbinas offshore.
 
 Submódulos:
 - inputs: Datos de entrada y constantes
-- helpers: Utilidades y funciones auxiliares  
 - turbine_analysis: Análisis de turbinas y asignación de costos
 - suppliers_analysis: Análisis de proveedores y contratos
 - charts: Visualizaciones

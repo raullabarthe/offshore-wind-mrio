@@ -1,0 +1,182 @@
+ind_ava_code,description,parent_code,type,sub_type,A*0,A*3,A*10,A*21,A*38,A*64,A*88,P*0,P*1,P*2,P*3,P*4,P*5
+A,"Agriculture, forestry and fishing",TOTAL,Industries,Industries,1,1,1,1,1,0,0,0,0,0,0,0,0
+AGR,"Agriculture, forestry and fishing",TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+A01,"Crop and animal production, hunting and related service activities",A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+A02,Forestry and logging,A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+A03,Fishing and aquaculture,A,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+NAG,Non-agriculture,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+IND,Industry including construction,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+B-E,Industry (except construction),TOTAL,Industries,Industries,1,1,1,0,0,0,0,0,0,0,0,0,0
+MAN,Manufacturing,B-E,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+B,Mining and quarrying,B-E,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+B05,Mining of coal and lignite,B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+B06,Extraction of crude petroleum and natural gas,B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+B07,Mining of metal ores,B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+B08,Other mining and quarrying,B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+B09,Mining support servic activities,B,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C,Manufacturing,B-E,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+C10T12,Manufacture of food products; beverages and tobacco products,C,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+C10,Manufacture of food products,C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C11,Manufacture of beverages,C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C12,Manufacture of tobacco products,C10-12,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C13T15,"Manufacture of textiles, wearing apparel, leather and related products",C,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+C13,Manufacture of textiles,C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C14,Manufacture of wearing apparel,C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C15,Manufacutre of leather and related products,C13-15,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C16-18,"Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials; paper and paper products; printing and reproduction of recorded media",C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+C16,"Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials",C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C17,Manufacture of paper and paper products,C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C18,Printing and reproduction of recorded media,C16-18,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C19,Manufacture of coke and refined petroleum products,C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C20_21,Manufacture of chemicals and basic pharmaceutical products,C,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+C20,Manufacture of chemicals and chemical products,C20_21,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C21,Manufacture of basic pharmaceutical products and pharmaceutical preparations,C20_21,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C22_23,Manufacture of rubber and plastic products; other non-metallic mineral products,C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+C22,Manufacture of rubber and plastic products,C22_23,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C23,Manufacture of other non-metallic mineral products,C22_23,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C24_25,"Manufacture of basic metals; fabricated metal products, except machinery and equipment",C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+C24,Manufacture of basic metals,C24_25,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C25,"Manufacture of fabricated metal products, except machinery and equipment",C24_25,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C26,"Manufacture of computer, electronic and optical products",C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C27,Manufacture of electrical equipment,C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C28,Manufacture of machinery and equipment n.e.c.,C,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+C29_30,"Manufacture of motor vehicles, trailers and semi-trailers; other transport equipment",C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+C29,"Manufacture of motor vehicles, trailers and semi-trailers",C29_30,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C30,Manufacture of other transport equipment,C29_30,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+C31-33,"Manufacture of furniture, other manufactured goods, repair and installation services of machinery and equipment",C,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+C31_32,Manufacture of furniture; other manufacturing,C31-33,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+C31,Manufacture of furniture,C31_32,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C32,Other manufacturing,C31_32,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+C33,Repair and installation of machinery and equipment,C31-33,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+MEL,"Mining and quarrying; electricity, gas, steam and air conditioning; water supply and waste management",TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+SER,Services,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+D,"Electricity, gas, steam and air conditioning supply",D_E,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+DE,"Electricity, gas, steam and air conditioning supply; water supply; sewerage, waste management and remediation services",B-E,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+D_E,"Electricity, gas, steam and air conditioning supply; water supply; sewerage, waste management and remediation services",B-E,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+D35,"Electricity, gas, steam and air conditioning supply",D_E,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+E,"Water supply; sewerage, waste management and remediation services",D_E,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+E36,"Water collection, treatment and supply",E,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+E37T39,"Sewerage, waste management, remediation activities",E,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+E37,Sewerage,E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+E38,"Waste collection, treatment and disposal activities; materials recovery",E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+E39,Remediation activities and other waste management services,E37-39,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+F,Construction,TOTAL,Industries,Industries,1,1,1,1,1,1,0,0,0,0,0,0,0
+CON,Construction,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+F41,Construction of buildings,F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+F42,Civil engineering,F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+F43,Specialised construction activities,F,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+MKT,Market services,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+G-I,"Wholesale and retail trade, transport, accomodation and food service activities",TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+G,Wholesale and retail trade services; repair services of motor vehicles and motorcycles,G-I,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+G45,Wholesale and retail trade and repair of motor vehicles and motorcycles,G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+G46,"Wholesale trade, except of motor vehicles and motorcycles",G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+G47,"Retail trade, except of motor vehicles and motorcycles",G,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+HJ,Transportation and storage; information and communication,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+H,Transportation and storage services,TOTAL,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+H49,Land transport and transport via pipelines,H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+H50,Water transport,H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+H51,Air transport,H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+H52,Warehousing and support activities for transportation,H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+H53,Postal and courier activities,H,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+I,Accommodation and food service activities,TOTAL,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+I55,Accommodation,I,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+I56,Food and beverage service activities,I,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+J,Information and communication,TOTAL,Industries,Industries,1,0,1,1,0,0,0,0,0,0,0,0,0
+J58-60,"Publishing activities; motion picture, video, television programme production; programming and broadcasting activities",J,Industries,Industries,1,0,0,0,1,0,0,0,0,0,0,0,0
+J58,Publishing activities,J58-60,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+J59_60,"Motion picture, video, television programme production; programming and broadcasting activities",J58-60,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+J59,"Motion picture, video, television programme production, sound recording and music publishing activities",J59_60,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+J60,Programming and broadcasting activities,J59_60,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+J61,Telecommunications,J,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+J62_63,"Computer programming, consultancy, and information service activities",J,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+J62,"Computer programming, consultancy and related activities",J62_63,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+J63,Information service activities,J62_63,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+K,Financial and insurance activities,TOTAL,Industries,Industries,1,0,1,1,1,0,0,0,0,0,0,0,0
+K64,"Financial service activities, except insurance and pension funding",K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+K65,"Insurance, reinsurance and pension funding, except compulsory social security",K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+K66,Activities auxiliary to financial services and insurance activities,K,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+LMN,"Real estate; professional, scientific and technical; administrative and support service activities",TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+L,Real estate activities,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+L68,Real estate activities,L,Industries,Industries,1,0,1,1,1,1,0,0,0,0,0,0,0
+L68A,Imputed rents of owner-occupied dwellings,L68,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+L68B,Real estate activities excluding imputed rents,L68,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+M_N,"Professional, scientific and technical activities; administrative and support service activities",TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+M,"Professional, scientific and technical services",M_N,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+M69_70,Legal and accounting activities; activities of head offices; management consultancy activities,M,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+M69,Legal and accounting activities,M69_70,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+M70,Activities of head offices; management consultancy activities,M69_70,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+M71,Architectural and engineering activities; technical testing and analysis,M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+M72,Scientific research and development,M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+M73,Advertising and market research,M,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+M74_75,"Other professional, scientific and technical activities; veterinary activities",M,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+M74,"Other professional, scientific and technical activities",M74_75,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+M75,Veterinary activities,M74_75,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+N,Administrative and support services,M_N,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+N77,Rental and leasing activities,N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+N78,Employment activities,N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+N79,"Travel agency, tour operator reservation service and related activities",N,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+N80T82,"Security and investigation, service and landscape, office administrative and support activities",N,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+N80,Security and investigation activities,N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+N81,Services to buildings and landscape activities,N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+N82,"Office administrative, office support and other business support activities",N80-82,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+PUB,Public and other services,TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+O-Q,"Public administration, defence, education, human health and social work services",TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+O,Public administration and defence; compulsory social security,O-Q,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+O84,Public administration and defence; compulsory social security,O-Q,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+P,Education,O-Q,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+P85,Education,O-Q,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+Q,Human health and social work services,O-Q,Industries,Industries,1,0,0,1,0,0,0,0,0,0,0,0,0
+Q86,Human health activities,Q,Industries,Industries,1,0,0,0,1,1,1,0,0,0,0,0,0
+Q87_88,Residential care activities and social work activities without accommodation,Q,Industries,Industries,1,0,0,0,1,1,0,0,0,0,0,0,0
+Q87,Residential care activities,Q87_88,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+Q88,Social work activities without accommodation,Q87_88,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+RSTU,"Arts, entertainment and recreation; other service activities; households; extra-territorial organisations",TOTAL,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+R-U,"Arts, entertainment and recreation; other service activities; activities of household and extra-territorial organizations and bodies",TOTAL,Industries,Industries,1,0,1,0,0,0,0,0,0,0,0,0,0
+R_S,"Arts, entertainment and recreation; other service activities",R-U,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+R,"Entertainement, recreations services",R_S,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+R90T92,"Creative, arts and entertainment activities; libraries, archives, museums and other cultural activities; gambling and betting activities",R,Industries,Industries,1,0,0,0,0,1,0,0,0,0,0,0,0
+R90,"Creative, arts and entertainment activities",R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+R91,"Libraries, archives, museums and other cultural activities",R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+R92,Gambling and betting activities,R90-92,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+R93,Sports activities and amusement and recreation activities,R,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+S,Other services,R_S,Industries,Industries,1,0,0,1,1,0,0,0,0,0,0,0,0
+S94,Activities of membership organisations,S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+S95,Repair of computers and personal and household goods,S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+S96,Other personal service activities,S,Industries,Industries,1,0,0,0,0,1,1,0,0,0,0,0,0
+T-U,Activities of households as employers; undifferentiated goods- and services-producing activities of households for own use; activities of extraterritorial organisations and bodies,R-U,Industries,Industries,1,0,0,0,0,0,0,0,0,0,0,0,0
+T,Activities of households as employers; undifferentiated goods- and services-producing activities of households for own use,T-U,Industries,Industries,1,0,0,1,1,1,0,0,0,0,0,0,0
+T97,Activities of households as employers of domestic personnel,T,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+T98,Undifferentiated goods-and-services-producing activities of private households for own use,T,Industries,Industries,1,0,0,0,0,0,1,0,0,0,0,0,0
+U,Activities of extraterritorial organisations and bodies,T-U,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+X,Unknown,T-U,Industries,Industries,1,0,0,1,1,1,1,0,0,0,0,0,0
+TOT_X_A02,All NACE activities except forestry and logging,,Components of value added,Total,1,0,0,0,0,0,0,0,0,0,0,0,0
+TOTAL,Total industries,TS_BP,Components of value added,Total,1,1,0,0,0,0,0,0,0,0,0,0,0
+OP_RES,Direct purchases abroad by residents,P2_ADJ,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+OP_NRES,Purchases on the domestic territory by non-residents,P2_ADJ,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P2,Intermediate consumption,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P2_ADJ,Total intermediate consumption /final use,P1,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+P7_U2,Imports of goods and services from members of the Monetary Union,P7_B0,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,1
+P7_U3,Imports of goods and services from non-members of the Monetary Union,P7_B0,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,1
+P7_B0,Imports of goods and services from the EU Member States,P7,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,1,0
+P7_D0,Imports of goods and services from the institutions of the EU,P7,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,1,1
+P7,Imports of goods and services,TS_BP,Components of value added,Imports,1,0,0,0,0,0,0,0,1,1,1,0,0
+TS_BP,Total supply at basic prices,TS_PP,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+D21X31,Taxes less subsidies on products,TS_PP,Components of value added,Total,1,0,0,0,0,0,0,0,1,1,1,1,1
+D1,Compensation of employees,B1G,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,1,1,1,0
+D11,Wages and salaries,D1,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,0,0,0,1
+B2A3G,"Operating surplus and mixed income, gross",B1G,Components of value added,Profits,1,0,0,0,0,0,0,0,1,1,1,1,0
+B2A3N,"Operating surplus and mixed income, net",B2A3G,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,1
+P51C,Consumption of fixed capital,B2A3G,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,1
+D29X39,Other taxes less other subsidies on production,B1G,Components of value added,Profits,1,0,0,0,0,0,0,0,1,1,1,1,0
+B1G,"Value added, gross",P1,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+P1,Output,,Components of value added,Total,1,0,0,0,0,0,0,0,1,1,1,1,1
+P51G,Gross fixed capital formation,,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+B3G,"Mixed income, gross",,Components of value added,Profits,1,0,0,0,0,0,0,0,1,0,0,0,0
+EMP_DC,Total employment domestic concept,,Components of value added,Compensations,1,0,0,0,0,0,0,0,1,0,0,0,0
+DISC,Discrepancy,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+DSP,Discrepancy,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+NAP,Not applicable,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+LE,Closing balance sheet,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0
+IMP,Use of imported products,,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,0
+CIFOBADJ,Cif/fob adjustment,,Components of value added,Imports,1,0,0,0,0,0,0,0,1,0,0,0,0
+TU,Total use,,Components of value added,Total,1,0,0,0,0,0,0,0,1,0,0,0,0

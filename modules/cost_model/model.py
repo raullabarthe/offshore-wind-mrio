@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import numpy as np
-import pandas as pd
 
 from .inputs import TurbineDesign, PlantConfig, costs_bvg
 
@@ -135,13 +134,7 @@ yaw_shares = {
 # ----------------------------
 # Helpers
 # ----------------------------
-def _sum_block_kg(block: Dict[str, np.ndarray]) -> float:
-    """Sum all subcomponents for turbine index 0; return kg."""
-    return float(sum(v[0] for v in block.values()))
 
-def _kg_to_t(x: float) -> float:
-    """kg -> tonnes."""
-    return x / 1000.0
 
 def scalar_sum(x) -> float:
     """Sum array or return scalar."""

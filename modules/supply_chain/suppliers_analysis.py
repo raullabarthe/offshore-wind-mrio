@@ -10,22 +10,10 @@ from modules.country import NAME_TO_CODE
 # -----------------------------------------------------------------------------
 # Data loading helpers
 # -----------------------------------------------------------------------------
+
+
 def load_excel(path: str, sheet_name: str) -> pd.DataFrame:
-    """
-    Load an Excel sheet into a pandas DataFrame.
-
-    Parameters
-    ----------
-    path : str
-        Path to the Excel file.
-    sheet_name : str
-        Name of the worksheet to read.
-
-    Returns
-    -------
-    DataFrame
-        The contents of the specified worksheet.
-    """
+    """Load one worksheet from an Excel workbook."""
     return pd.read_excel(path, sheet_name=sheet_name, header=0)
 
 def load_data(
@@ -437,8 +425,6 @@ def trade_dynamics_to_long(
             df[col] = df[col].astype(str).str.strip()
     return df
 
-def concat_trade_sources(*tables: pd.DataFrame) -> pd.DataFrame:
-    return pd.concat(list(tables), ignore_index=True)
 
 
 # -----------------------------------------------------------------------------
@@ -478,9 +464,6 @@ def build_turbine_trade_long(df_alloc: pd.DataFrame) -> pd.DataFrame:
     g["CostCategory"] = "Turbine"
     return g[["CostCategory", "CostType", "Country_deploy", "Country_origin", "Final_share"]]
 
-def add_turbine_to_trade(trade_all_cal: pd.DataFrame, turbine_trade_long: pd.DataFrame) -> pd.DataFrame:
-    left = trade_all_cal[["CostCategory","CostType","Country_deploy","Country_origin","Final_share"]].copy()
-    return pd.concat([left, turbine_trade_long], ignore_index=True)
 
 
 # -----------------------------------------------------------------------------
@@ -1541,58 +1524,6 @@ def build_trade_dynamics(
     )
 
 
-def check_trade_matrices_column_sums(
-    trade_matrices: dict,
-    *,
-    tol: float = 1e-6,
-    verbose: bool = True,
-):
-    """
-    Check that each column in every trade matrix sums to 1 (within tolerance).
-
-    Parameters
-    ----------
-    trade_matrices : dict
-        Nested dict {CostCategory: {CostType: DataFrame}}
-    tol : float
-        Numerical tolerance for column sums.
-    verbose : bool
-        If True, print diagnostics.
-
-    Returns
-    -------
-    problems : list of dict
-        One entry per (category, type, column) that violates the condition.
-    """
-    problems = []
-
-    for cost_cat, type_dict in trade_matrices.items():
-        for cost_type, mat in type_dict.items():
-            col_sums = mat.sum(axis=0)
-
-            for col, s in col_sums.items():
-                if not np.isclose(s, 1.0, atol=tol):
-                    problems.append({
-                        "CostCategory": cost_cat,
-                        "CostType": cost_type,
-                        "Country_deploy": col,
-                        "ColumnSum": float(s),
-                        "Deviation": float(s - 1.0),
-                    })
-
-                    if verbose:
-                        print(
-                            f"[WARN] {cost_cat} | {cost_type} | {col}: "
-                            f"sum = {s:.6f}"
-                        )
-
-    if verbose:
-        if not problems:
-            print("✅ All trade matrices columns sum to 1 within tolerance.")
-        else:
-            print(f"⚠️ Found {len(problems)} column-sum issues.")
-
-    return problems
 
 def apply_shares(trade_long: pd.DataFrame) -> pd.DataFrame:
     df = trade_long.copy()

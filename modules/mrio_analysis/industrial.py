@@ -2,7 +2,6 @@
 
 import os.path as op
 import os
-import re
 import textwrap
 import numpy as np
 import pandas as pd
@@ -122,17 +121,17 @@ def get_ind_root(root) -> str:
     c1_path = _find_c1_bridge_path(root)
     if c1_path is not None:
         return str(c1_path.parent)
-    
+
     # Try to find Industrial breakdown directory
     ind_root = op.join(root, "Industrial breakdown")
-    
+
     if op.isdir(ind_root):
         return ind_root
-    
+
     # If not found in subdirectory, check if root itself is the Industrial breakdown directory
     if op.isdir(root) and "bridge_matrix.xlsx" in os.listdir(root):
         return root
-    
+
     raise FileNotFoundError(
         f"Could not find 'Industrial breakdown' directory or bridge_matrix.xlsx in: {root}\n"
         f"Expected path: {ind_root}"
@@ -587,7 +586,12 @@ def allocate_farm_costs(cost_df: pd.DataFrame, bridge_long: pd.DataFrame) -> pd.
     return df
 
 
-def allocate_turbine_costs(df_alloc: pd.DataFrame, bridge_tur: pd.DataFrame) -> pd.DataFrame:
+def allocate_turbine_costs(
+    df_alloc: pd.DataFrame,
+    bridge_tur: pd.DataFrame,
+    *,
+    keep_oem: bool = False,
+) -> pd.DataFrame:
     df = df_alloc.drop(columns=["industry_code"], errors="ignore").copy()
 
     if "cost_block" not in df.columns:
@@ -617,7 +621,7 @@ def allocate_turbine_costs(df_alloc: pd.DataFrame, bridge_tur: pd.DataFrame) -> 
     ok_b = b["industry_code"].notna().mean() if len(b) else 0.0
     dfm = a if ok_a >= ok_b else b
 
-    out = dfm[[
+    out_cols = [
         "deployment_country",
         "component_group",
         "sub_component",
@@ -625,12 +629,21 @@ def allocate_turbine_costs(df_alloc: pd.DataFrame, bridge_tur: pd.DataFrame) -> 
         "origin_country",
         "industry_code",
         "value_alloc",
-    ]].copy()
+    ]
+    if keep_oem and "OEM" in dfm.columns:
+        out_cols.insert(1, "OEM")
+    out = dfm[out_cols].copy()
 
     out["industry_code"] = out["industry_code"].astype("string").str.strip().fillna("UNMAPPED")
 
+    group_cols = [
+        "deployment_country", "component_group", "sub_component", "cost_block",
+        "origin_country", "industry_code",
+    ]
+    if keep_oem and "OEM" in out.columns:
+        group_cols.insert(1, "OEM")
     out = out.groupby(
-        ["deployment_country","component_group","sub_component","cost_block","origin_country","industry_code"],
+        group_cols,
         as_index=False
     )["value_alloc"].sum()
 
@@ -680,13 +693,13 @@ def add_3_levels(df: pd.DataFrame) -> pd.DataFrame:
 
     m = df["component_group_L0"].isin(TURBINE_BLOCKS)
     df.loc[m, "component_group_L1"] = "Turbine"
-    df.loc[m, "sub_component_L1"]   = df.loc[m, "component_group_L0"] 
+    df.loc[m, "sub_component_L1"]   = df.loc[m, "component_group_L0"]
 
     m = df["component_group_L0"].eq("O&M")
     df.loc[m, "sub_component_L1"] = df.loc[m, "sub_component_L0"].map(OPEX_L0_TO_L1).fillna(df.loc[m, "sub_component_L0"])
 
     df["component_group_L2"] = df["component_group_L1"]
-    df["sub_component_L2"]   = df["component_group_L2"]  
+    df["sub_component_L2"]   = df["component_group_L2"]
     return df
 
 # ==============================================================
@@ -786,27 +799,6 @@ def run_industrial(
 # 6) BRIDGE SENSITIVITY
 # ==============================================================
 
-def run_reclassification_sensitivity(
-    scenarios: dict[str, list[dict]],   # name -> overrides list
-    ROOT: str,
-    flows_by_component_hier_all: dict,
-    df_alloc: pd.DataFrame,
-    bridge_overrides: list[dict] | None = None,
-):
-    results = {}
-    for name, overrides in scenarios.items():
-        final_cost_df_agg, component_groups, subcomponents_dict = run_industrial(
-            ROOT=ROOT,
-            flows_by_component_hier_all=flows_by_component_hier_all,
-            df_alloc=df_alloc,
-            bridge_overrides=overrides,
-        )
-        results[name] = {
-            "final_cost_df_agg": final_cost_df_agg,
-            "component_groups": component_groups,
-            "subcomponents_dict": subcomponents_dict,
-        }
-    return results
 # ==============================================================
 # 7) INDUSTRY-GROUP MRIO RESULTS
 # ==============================================================
@@ -889,11 +881,6 @@ def _blend(a,b,t): return tuple((1-t)*a[i]+t*b[i] for i in range(3))
 def _tail(code):
     s=str(code)
     return s.split("_",1)[1] if s.startswith("CPA_") and "_" in s else s
-def _palette_triplet(dark,mid,light): return [_hex2rgb(dark),_hex2rgb(mid),_hex2rgb(light)]
-def _pick_from_triplet(tri, idx, n):
-    if n<=1: return tri[1]
-    t=idx/(n-1)
-    return _blend(tri[0], tri[2], t)
 
 
 def _short_component_label(s: str) -> str:
@@ -1400,37 +1387,3 @@ def plot_eu27_composition_groups(
 def _lighten(color, amount=0.35):
     r, g, b = mcolors.to_rgb(color)
     return (r + (1 - r) * amount, g + (1 - g) * amount, b + (1 - b) * amount)
-
-
-def _prep_effects_3way(
-    df: pd.DataFrame,
-    *,
-    col_domestic: str,
-    col_othereu: str,
-    col_row: str,
-    col_total: str | None = None,
-) -> pd.DataFrame:
-    d = df.copy()
-
-    need = ["Origin", "Industry", col_domestic, col_othereu, col_row]
-    missing = [c for c in need if c not in d.columns]
-    if missing:
-        raise ValueError(f"Missing columns: {missing}")
-
-    d["Origin"] = d["Origin"].astype(str)
-    d["Industry"] = d["Industry"].astype(str)
-
-    for c in [col_domestic, col_othereu, col_row]:
-        d[c] = pd.to_numeric(d[c], errors="coerce").fillna(0.0).clip(lower=0.0)
-
-    if col_total is None or col_total not in d.columns:
-        d["_Total"] = d[col_domestic] + d[col_othereu] + d[col_row]
-        col_total = "_Total"
-    else:
-        d[col_total] = pd.to_numeric(d[col_total], errors="coerce").fillna(0.0).clip(lower=0.0)
-
-    d[col_total] = d[col_total].clip(lower=0.0)
-    return d, col_total
-
-
-

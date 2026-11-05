@@ -7,18 +7,16 @@ from typing import Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import Rectangle
 
 from modules.latex_style import (
     apply_house_style,
-    make_shades,
     save_and_close,
     set_house_style,
     tex_safe,
     adjust_lightness,
     get_text_color,
 )
-from .inputs import NREL_ROWS, costs_bvg
+from .inputs import costs_bvg
 
 # ============================================================================
 # COLOR PALETTES
@@ -514,16 +512,6 @@ def plot_model_double_donut(
 # BENCHMARK CHARTS (BVG vs Model vs NREL)
 # ============================================================================
 
-def _normalize_pct(df: pd.DataFrame, col: str, *, exclude_parent="ABEX") -> pd.DataFrame:
-    """Normalize column to 100% (excluding ABEX row if present)."""
-    out = df.copy()
-    keep = out["Parent"].ne(exclude_parent)
-    s = pd.to_numeric(out.loc[keep, col], errors="coerce").fillna(0.0).sum()
-    if s > 0:
-        out.loc[keep, col] = pd.to_numeric(out.loc[keep, col], errors="coerce").fillna(0.0) / s * 100.0
-    else:
-        out.loc[keep, col] = 0.0
-    return out.loc[keep].copy()
 
 
 def canon_series(s: pd.Series) -> pd.Series:
@@ -665,46 +653,6 @@ def build_bvg_rows_from_costs_bvg(costs_bvg: dict, opex_years: int = 20) -> list
     return bvg_rows
 
 
-def align_nrel_to_chart_template(chart_df: pd.DataFrame, nrel_rows: list[dict]) -> pd.DataFrame:
-    template = canon_df(chart_df[["Parent", "Cost"]].drop_duplicates(), ["Parent", "Cost"])
-
-    nrel_raw = pd.DataFrame(nrel_rows).copy()
-    nrel_raw["Cost"] = canon_series(nrel_raw["Cost"])
-
-    nrel_map = {
-        "Development": ("Devex", "Devex"),
-        "Project Management": ("Devex", "Devex"),
-
-        # Aggregated in NREL -> map to a single closest bucket (no weights)
-        "Turbine": ("Turbine", "Nacelle"),
-        "O&M": ("O&M", "Operations"),
-
-        "Substructure & Foundation": ("BoP", "Foundation"),
-        "Electrical Infrastructure": ("BoP", "Other"),
-
-        # Installation “extras” -> Other
-        "Assembly and Installation": ("Installation", "Other"),
-        "Port and Staging, Logistics, Transportation": ("Installation", "Other"),
-        "Lease Price": ("Installation", "Other"),
-        "Plant Commissioning": ("Installation", "Other"),
-        "Contingency": ("Installation", "Other"),
-        "Construction Finance": ("Installation", "Other"),
-        "Insurance During Construction": ("Installation", "Other"),
-
-        "Decommissioning": ("ABEX", "Decommissioning"),
-    }
-
-    mapped = nrel_raw.copy()
-    mapped[["Parent", "Cost"]] = mapped["Cost"].map(lambda k: nrel_map.get(k, (np.nan, np.nan))).apply(pd.Series)
-    mapped = mapped.dropna(subset=["Parent", "Cost"]).copy()
-    mapped = canon_df(mapped, ["Parent", "Cost"])
-
-    nrel_agg = mapped.groupby(["Parent", "Cost"], as_index=False)["NREL"].sum()
-
-    out = template.merge(nrel_agg, on=["Parent", "Cost"], how="left")
-    out["NREL"] = out["NREL"].fillna(0.0)
-    print("Sum NREL mapped (%):", out["NREL"].sum())
-    return out
 
 
 def build_bvg_template_df(bvg_rows: list[dict]) -> pd.DataFrame:
