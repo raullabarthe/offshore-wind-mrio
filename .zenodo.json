@@ -1,11 +1,10 @@
 {
   "title": "Computational model for Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?",
   "upload_type": "software",
-  "publication_date": "2026-07-08",
   "creators": [
     {
       "name": "Labarthe, Raul",
-      "orcid": "0009-0001-6798-330X",
+      "orcid": "0000-0001-6798-330X",
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     },
     {
@@ -19,12 +18,11 @@
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     }
   ],
-  "description": "Computational model for a component-level multiregional input-output analysis of Made-in-Europe sourcing rules in offshore wind energy auctions.",
+  "description": "Submission-version computational model for a component-level multiregional input-output analysis of offshore-wind manufacturing procurement reallocations. A public release requires final licensing, coauthor review, and restricted-data checks.",
   "keywords": [
     "wind energy",
     "input-output analysis",
     "renewable energy auctions",
-    "local content requirements",
     "green industrial policy",
     "global value chains",
     "offshore wind",

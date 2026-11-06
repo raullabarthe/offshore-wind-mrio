@@ -14,7 +14,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import matplotlib as mpl
 import matplotlib.colors as mcolors
@@ -23,13 +22,13 @@ import numpy as np
 import pandas as pd
 import re
 from matplotlib.colors import LinearSegmentedColormap, to_rgb
-from matplotlib.patches import Rectangle
 
 from .config import (
     CLOSE_FIGURES,
     CORE_DEPLOYMENT,
     IMG_ROOT,
     SAVE_FIGURES,
+    project_relative_path,
 )
 
 
@@ -281,20 +280,6 @@ def ensure_openpyxl_setup(
     print(f"openpyxl: {version}")
 
 
-def ensure_notebook_runtime_setup(
-    *,
-    install_miktex: bool = True,
-    require_latex_packages: bool = True,
-    install_cartopy: bool = True,
-    install_openpyxl: bool = True,
-) -> None:
-    """One-shot setup for running the paper notebook from a fresh environment."""
-    ensure_lualatex_pgf_setup(
-        install_miktex=install_miktex,
-        require_packages=require_latex_packages,
-    )
-    ensure_cartopy_setup(install=install_cartopy)
-    ensure_openpyxl_setup(install=install_openpyxl)
 
 
 def adjust_lightness(color, factor=1.0):
@@ -321,17 +306,6 @@ def make_shades(base_hex, n):
     return shades
 
 
-def color_for_origin(origin: str) -> str:
-    """
-    Deterministic, sober colors for origin types.
-    Falls back to neutral gray if unknown.
-    """
-    from .cost_model import PARENTS_TABLEAU
-    
-    for key, col in PARENTS_TABLEAU.items():
-        if origin.lower().startswith(key.lower()):
-            return col
-    return "#9E9E9E"
 
 
 def set_house_style():
@@ -419,11 +393,6 @@ def apply_house_style(ax, *, grid=False):
         ax.grid(True, axis="y", linewidth=0.4, alpha=0.3)
 
 
-def finalize_figure(fig, *, savepath=None):
-    """Layout + save with tight bounding box."""
-    fig.tight_layout()
-    if savepath:
-        fig.savefig(savepath, bbox_inches="tight")
 
 
 def save_and_close(
@@ -464,7 +433,7 @@ def save_and_close(
                 pass
             fig.savefig(outpath, bbox_inches="tight")
 
-        print(f"Saved to: {outpath}")
+        print(f"Saved to: {project_relative_path(outpath)}")
 
     if close:
         plt.close(fig)
@@ -472,9 +441,6 @@ def save_and_close(
     return outpath
 
 
-def set_preview_mode():
-    mpl.use("Qt5Agg")
-    mpl.rcParams.update({"text.usetex": False})
 
 
 def build_origin_color_map(origins):
@@ -484,25 +450,8 @@ def build_origin_color_map(origins):
     return {o: PALETTE_MUTED[i % len(PALETTE_MUTED)] for i, o in enumerate(origins_sorted)}
 
 
-def cardo_heatmap():
-    """Cardo-style sequential colormap: light (low) -> blue (high)."""
-    from .cost_model.charts import PALETTE_CARDO
-    
-    return LinearSegmentedColormap.from_list(
-        "cardo_seq",
-        [
-            PALETTE_CARDO["light"],
-            PALETTE_CARDO["secondary"],
-            PALETTE_CARDO["dark"],
-        ],
-        N=256,
-    )
 
 
-def clean_idx(s):
-    s = str(s)
-    s = s.replace("[t]3*", "")
-    return tex_safe(s)
 
 
 def _strip_latex_wrappers(s: str) -> str:
@@ -514,6 +463,145 @@ def _strip_latex_wrappers(s: str) -> str:
     return s.replace("}", "").strip()
 
 
+def _tex_safe_resilience_scenario(s: str) -> str:
+    """Escape scenario text while preserving inline math in its title."""
+    value = str(s)
+    if " ($" in value and value.endswith("$)"):
+        text_part, math_part = value.split(" ($", 1)
+        return f"{tex_safe(text_part)} ($" + math_part
+    return tex_safe(value)
+
+
+def _rewrite_resilience_accounting_note(note: str | None) -> str | None:
+    """Keep the accounting note current without changing its main explanation."""
+    if note is None:
+        return None
+    old_tail = (
+        r"Absolute values use $\mu=0.3$; the central $\mu=0.3$ percentage row is "
+        r"supplemented by $\mu=0$, $\mu=0.1$, $\mu=0.2$, $\mu=0.4$, and $\mu=0.5$ "
+        r"sensitivity rows, each relative to its corresponding baseline."
+    )
+    new_tail = (
+        r"Absolute values correspond to $\mu=0.3$. Percentage variations are reported for "
+        r"$\mu=0$--$0.5$ in increments of 0.1, relative to the unchanged baseline."
+    )
+    return str(note).replace(old_tail, new_tail)
+
+
+def _df_to_latex_resilience_accounting_side_by_side(
+    df: pd.DataFrame,
+    *,
+    caption=None,
+    label=None,
+    note: str | None = None,
+) -> str:
+    """Render multi-scenario resilience accounting tables side by side."""
+    note = _rewrite_resilience_accounting_note(note)
+    frame = df.reset_index()
+    scenarios = frame["Scenario"].drop_duplicates().tolist()
+    preferred_cols = ["Total", "Turbine", "BoP"]
+    cols = [c for c in preferred_cols if c in df.columns]
+    cols += [c for c in df.columns if c not in cols]
+    if len(scenarios) == 2 and len(cols) == 3:
+        scenario_cols = [(scenario, col) for scenario in scenarios for col in cols]
+    else:
+        raise ValueError(
+            "Side-by-side resilience accounting requires two scenarios and "
+            "exactly Total, Turbine, and BoP columns."
+        )
+
+    def _fmt_num(v, *, pct=False) -> str:
+        return _fmt_resilience_num(v, pct=pct)
+
+    def _fmt_sensitivity(v) -> str:
+        if not isinstance(v, (tuple, list)) or len(v) != 2:
+            raise ValueError("Markup sensitivity cells must contain (low, high) values.")
+        return rf"\shortstack[r]{{{_fmt_num(v[0])}\\{_fmt_num(v[1])}}}"
+
+    def _value(scenario, impact, effect, column):
+        sub = frame[
+            (frame["Scenario"] == scenario)
+            & (frame["Impact"] == impact)
+            & (frame["Effects"] == effect)
+        ]
+        if sub.empty:
+            raise KeyError(
+                f"Missing resilience accounting row: scenario={scenario!r}, "
+                f"impact={impact!r}, effects={effect!r}."
+            )
+        return sub.iloc[0][column]
+
+    impact_values = frame["Impact"].drop_duplicates().tolist()
+    effects_by_impact = {
+        impact: frame.loc[frame["Impact"] == impact, "Effects"].drop_duplicates().tolist()
+        for impact in impact_values
+    }
+    numeric_spec = r">{\raggedleft\arraybackslash}p{1.30cm}"
+    tabular_spec = "ll|" + numeric_spec * 3 + "|" + numeric_spec * 3
+
+    lines = [
+        r"\begin{table*}[!t]",
+        r"\centering",
+        r"\footnotesize",
+        r"\renewcommand{\arraystretch}{1.08}",
+        r"\setlength{\tabcolsep}{4pt}",
+        "",
+        rf"\begin{{tabular}}{{{tabular_spec}}}",
+        r"\toprule",
+        r"\multicolumn{1}{c}{\multirow{2}{*}{\textbf{Impact}}} & "
+        r"\multicolumn{1}{c|}{\multirow{2}{*}{\textbf{Effects}}} & "
+        rf"\multicolumn{{3}}{{c|}}{{\textbf{{{_tex_safe_resilience_scenario(scenarios[0])}}}}} & "
+        rf"\multicolumn{{3}}{{c}}{{\textbf{{{_tex_safe_resilience_scenario(scenarios[1])}}}}} \\" ,
+        "& & " + " & ".join(rf"\textbf{{{tex_safe(col)}}}" for _ in scenarios for col in cols) + r" \\",
+        r"\midrule",
+    ]
+
+    for impact_i, impact in enumerate(impact_values):
+        effects = effects_by_impact[impact]
+        for effect_i, effect in enumerate(effects):
+            effect_plain = _strip_latex_wrappers(effect)
+            is_markup_pct = effect_plain in {r"$\mu=0.1$", r"$\mu=0.5$"}
+            is_markup_sensitivity = bool(re.fullmatch(r"\$\\mu=0(?:\.\d+)?\$", effect_plain))
+            is_central_pct = "%" in effect_plain and r"$\mu=0.3$" in effect_plain
+            is_pct = "%" in effect_plain or is_markup_sensitivity
+            if is_markup_sensitivity:
+                effect_label = effect_plain
+            elif "%" in effect_plain:
+                pct_name = effect_plain.split(" ($", 1)[0]
+                mu_suffix = effect_plain[len(pct_name):]
+                effect_label = rf"\textit{{{tex_safe(pct_name)}}}{mu_suffix}"
+            else:
+                effect_label = tex_safe(effect_plain)
+            prefix = []
+            if effect_i == 0:
+                prefix.append(rf"\multirow{{{len(effects)}}}{{*}}{{{tex_safe(impact)}}}")
+            else:
+                prefix.append("")
+            prefix.append(effect_label)
+            values = [
+                _fmt_num(_value(scenario, impact, effect, col), pct=is_pct)
+                for scenario, col in scenario_cols
+            ]
+            lines.append("& ".join(prefix + values) + r" \\")
+            if effect_plain.startswith(("EU27 base", "Baseline cost", "EU27 scen.", "Scenario cost", "Net effect")):
+                lines.append(r"\cline{2-8}")
+            if is_central_pct:
+                lines.append(r"\arrayrulecolor{gray}\cline{2-8}\arrayrulecolor{black}")
+        if impact_i < len(impact_values) - 1:
+            lines.append(r"\midrule")
+
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    if note:
+        note_s = str(note).replace(r"\footnotesize", "").strip()
+        lines += ["", r"\par\smallskip", r"\begin{minipage}{\textwidth}", r"\scriptsize", note_s, r"\end{minipage}"]
+    if caption is not None:
+        lines += ["", rf"\caption{{{tex_safe(str(caption))}}}"]
+    if label is not None:
+        lines.append(rf"\label{{{str(label)}}}")
+    lines += [r"\end{table*}", ""]
+    return "\n".join(lines)
+
+
 def _df_to_latex_resilience_accounting(
     df: pd.DataFrame,
     *,
@@ -522,8 +610,21 @@ def _df_to_latex_resilience_accounting(
     index_names: list[str] | None = None,
     note: str | None = None,
 ) -> str:
+    note = _rewrite_resilience_accounting_note(note)
     idx_names = list(index_names or df.index.names)
     has_scenario = idx_names[:3] == ["Scenario", "Impact", "Effects"]
+    if (
+        has_scenario
+        and df.index.get_level_values("Scenario").nunique() == 2
+        and len(df.columns) == 3
+        and {"Total", "Turbine", "BoP"}.issubset({str(c) for c in df.columns})
+    ):
+        return _df_to_latex_resilience_accounting_side_by_side(
+            df,
+            caption=caption,
+            label=label,
+            note=note,
+        )
     index_cols = ["Scenario", "Impact", "Effects"] if has_scenario else ["Impact", "Effects"]
 
     out = df.copy()
@@ -534,32 +635,7 @@ def _df_to_latex_resilience_accounting(
     out = out.reindex(columns=cols)
 
     def _fmt_num(v, *, pct=False) -> str:
-        try:
-            if pd.isna(v):
-                return ""
-        except Exception:
-            pass
-        if isinstance(v, str):
-            return v
-        x = float(v)
-        ax = abs(x)
-        if pct:
-            if ax >= 10:
-                body = rf"\num[detect-all]{{{x:.0f}}}"
-            elif ax >= 1:
-                body = rf"\num[detect-all]{{{x:.1f}}}"
-            else:
-                body = rf"\num[detect-all]{{{x:.2f}}}"
-            return rf"\textit{{{body}}}"
-        if ax >= 10:
-            return rf"\num{{{x:.0f}}}"
-        if ax >= 1:
-            s = f"{x:.1f}".rstrip("0").rstrip(".")
-            return rf"\num{{{s}}}"
-        if ax == 0:
-            return r"\num{0}"
-        s = f"{x:.2f}".rstrip("0").rstrip(".")
-        return rf"\num{{{s}}}"
+        return _fmt_resilience_num(v, pct=pct)
 
     tabular_spec = (
         r"@{\extracolsep{\fill}}lll|r|rrrrr@{}"
@@ -607,10 +683,18 @@ def _df_to_latex_resilience_accounting(
             for _, row in impact_frame.iterrows():
                 effect = str(row["Effects"])
                 effect_plain = _strip_latex_wrappers(effect)
-                is_pct = "%" in effect_plain
-                effect_label = tex_safe(effect_plain)
-                if is_pct:
-                    effect_label = rf"\textit{{{effect_label}}}"
+                is_markup_pct = effect_plain in {r"$\mu=0.1$", r"$\mu=0.5$"}
+                is_markup_sensitivity = bool(re.fullmatch(r"\$\\mu=0(?:\.\d+)?\$", effect_plain))
+                is_central_pct = "%" in effect_plain and r"$\mu=0.3$" in effect_plain
+                is_pct = "%" in effect_plain or is_markup_sensitivity
+                if is_markup_sensitivity:
+                    effect_label = effect_plain
+                elif "%" in effect_plain:
+                    pct_name = effect_plain.split(" ($", 1)[0]
+                    mu_suffix = effect_plain[len(pct_name):]
+                    effect_label = rf"\textit{{{tex_safe(pct_name)}}}{mu_suffix}"
+                else:
+                    effect_label = tex_safe(effect_plain)
 
                 row_prefix = []
                 if has_scenario:
@@ -630,10 +714,16 @@ def _df_to_latex_resilience_accounting(
                 first_scenario_row = False
                 first_impact_row = False
 
-                if effect_plain.startswith("EU27 base") or effect_plain.startswith("Net effect"):
+                if effect_plain.startswith(("EU27 base", "Baseline cost", "EU27 scen.", "Scenario cost", "Net effect")):
                     start_col = 3 if has_scenario else 2
                     end_col = len(index_cols) + len(cols)
                     lines.append(rf"\cline{{{start_col}-{end_col}}}")
+                if is_central_pct:
+                    start_col = 3 if has_scenario else 2
+                    end_col = len(index_cols) + len(cols)
+                    lines.append(
+                        rf"\arrayrulecolor{{gray}}\cline{{{start_col}-{end_col}}}\arrayrulecolor{{black}}"
+                    )
 
             if impact_i < len(impact_values) - 1:
                 lines.append(r"\midrule")
@@ -686,6 +776,29 @@ def _fmt_report_num(v, *, pct: bool = False) -> str:
     return rf"\num{{{s}}}"
 
 
+def _fmt_resilience_num(v, *, pct: bool = False) -> str:
+    """Format resilience-accounting numbers without changing other tables."""
+    try:
+        if pd.isna(v):
+            return ""
+    except Exception:
+        pass
+    if isinstance(v, str):
+        return v
+    x = float(v)
+    magnitude = abs(x) if x < 0 else x
+    if abs(x) >= 10:
+        body = f"{magnitude:.0f}"
+    else:
+        body = f"{magnitude:.1f}".rstrip("0").rstrip(".")
+    if body in {"0", "0.0", "-0", "-0.0"}:
+        body = "0"
+    formatted = rf"\num{{{body}}}"
+    if x < 0 and body != "0":
+        formatted = rf"({formatted})"
+    return rf"\textit{{{formatted}}}" if pct else formatted
+
+
 def _df_to_latex_impact_region_effect_component(
     df: pd.DataFrame,
     *,
@@ -717,10 +830,12 @@ def _df_to_latex_impact_region_effect_component(
     def _region_label(region: str) -> tuple[str, bool]:
         region = str(region)
         pct = "%" in region
+        child = region.replace("%", "").strip() in {"China", "Others"}
+        indent = r"\hspace{0.4em}" if child else ""
         if pct:
-            display = tex_safe(region.replace("%", "").strip()) + r" \%"
+            display = indent + tex_safe(region.replace("%", "").strip()) + r" \%"
             return rf"\textit{{{display}}}", True
-        return tex_safe(region), False
+        return indent + tex_safe(region), False
 
     def _row_lines(prefix: str, region: str, values: list[str]) -> list[str]:
         lines = [prefix] if prefix else []
@@ -766,7 +881,17 @@ def _df_to_latex_impact_region_effect_component(
             lines.extend(_row_lines(prefix, region_label, values))
 
             region_plain = str(row["Region"])
-            if region_plain in {"RoW", "Global"}:
+            next_regions = impact_frame.iloc[row_i + 1 :]["Region"].astype(str).tolist()
+            if region_plain == "RoW %":
+                lines.append(r"\arrayrulecolor{black!20}")
+                lines.append(r"\cline{2-10}")
+                lines.append(r"\arrayrulecolor{black}")
+                lines.append("")
+            elif region_plain == "RoW" or (
+                region_plain == "Global"
+                and next_regions
+                and "%" in next_regions[0]
+            ):
                 lines.append(r"\cline{2-10}")
                 lines.append("")
 

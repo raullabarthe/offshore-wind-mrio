@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this repository, please cite the archived release."
+message: "If you use this repository, please cite the software and its associated manuscript."
 title: "Computational model for Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?"
 type: software
 authors:
@@ -13,16 +13,15 @@ authors:
     given-names: "Anastasia"
     orcid: "https://orcid.org/0000-0003-3864-2749"
 repository-code: "https://github.com/raullabarthe/offshore-wind-mrio"
-abstract: "Computational model and non-proprietary data-processing materials for a component-level MRIO analysis of Made-in-Europe sourcing rules in offshore wind auctions."
+abstract: "Computational model and non-proprietary processed inputs for a component-level MRIO analysis of manufacturing procurement reallocations in offshore wind auctions."
 keywords:
   - "wind energy"
   - "input-output analysis"
   - "renewable energy auctions"
-  - "local content requirements"
   - "green industrial policy"
   - "global value chains"
-version: "1.0.0-paper-submission"
-date-released: "2026-07-08"
+  - "offshore wind"
+  - "MRIO"
 preferred-citation:
   type: article
   title: "Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?"
@@ -36,6 +35,5 @@ preferred-citation:
     - family-names: "Ioannou"
       given-names: "Anastasia"
       orcid: "https://orcid.org/0000-0003-3864-2749"
-  year: 2026
-  journal: "Energy Policy"
-  notes: "Manuscript prepared for submission to Energy Policy."
+  journal: "Energy Economics"
+  notes: "Manuscript submission version; bibliographic details are pending."

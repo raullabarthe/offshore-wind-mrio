@@ -9,8 +9,7 @@ the analysis notebook.
 from __future__ import annotations
 
 from pathlib import Path
-import os
-import os.path as op
+from functools import lru_cache
 from typing import Optional, Dict, Tuple
 
 import numpy as np
@@ -28,7 +27,12 @@ from shapely.ops import unary_union
 from modules.cost_model.charts import PALETTE_CARDO
 
 try:
-    from modules.config import IMG_ROOT as DEFAULT_IMG_ROOT, SAVE_FIGURES, CLOSE_FIGURES
+    from modules.config import (
+        IMG_ROOT as DEFAULT_IMG_ROOT,
+        SAVE_FIGURES,
+        CLOSE_FIGURES,
+        project_relative_path,
+    )
 except Exception:
     DEFAULT_IMG_ROOT = None
     SAVE_FIGURES = True
@@ -225,7 +229,7 @@ def save_map_pdf_no_tight(
 
     if save:
         fig.savefig(outpath, format="pdf")
-        print(f"Saved to: {outpath}")
+        print(f"Saved to: {project_relative_path(outpath)}")
 
     if close:
         plt.close(fig)
@@ -246,38 +250,6 @@ def melt_results_by_origin(df: pd.DataFrame) -> pd.DataFrame:
     return long.drop(columns="type_tier")
 
 
-def aggregate_components_by_label(
-    results_by_origin_lvl: dict,
-    lvl: int,
-    components_map: dict[str, list[str]],
-) -> dict[str, pd.DataFrame]:
-    """
-    Aggregate multiple component tables into labeled groups.
-
-    components_map: {label: [component_keys...]}
-    Returns: {label: aggregated_df}
-    """
-    if lvl not in results_by_origin_lvl:
-        raise KeyError(f"Level {lvl} not found in results_by_origin_lvl.")
-    base = results_by_origin_lvl[lvl]
-
-    keys = ["Deployment", "Country", "Year", "Sector"]
-    out: dict[str, pd.DataFrame] = {}
-
-    for label, comps in components_map.items():
-        missing = [c for c in comps if c not in base]
-        if missing:
-            raise KeyError(f"Missing components {missing} for label '{label}'.")
-        dfs = [base[c] for c in comps]
-        num_cols = [c for c in dfs[0].columns if c not in keys]
-        agg = (
-            pd.concat(dfs, ignore_index=True)
-            .groupby(keys, as_index=False)[num_cols]
-            .sum()
-        )
-        out[label] = agg
-
-    return out
 
 
 def _aggregate_components_from_base(
@@ -320,6 +292,13 @@ def _fix_iso2(rec):
     return _A3A2.get(a3) if a3 else None
 
 
+@lru_cache(maxsize=1)
+def _natural_earth_country_records():
+    """Load Natural Earth country records once per Python process."""
+    shp = shapereader.natural_earth("50m", "cultural", "admin_0_countries")
+    return tuple(shapereader.Reader(shp).records())
+
+
 def _in_extent(x, y, e):
     xmin, xmax, ymin, ymax = e
     return xmin <= x <= xmax and ymin <= y <= ymax
@@ -351,10 +330,10 @@ def _rest_of_world_share_for_map(
         if code in s_num.index:
             return float(s_num.loc[code])
 
-    shp = shapereader.natural_earth("50m", "cultural", "admin_0_countries")
+    records = _natural_earth_country_records()
     drawable = {
         iso
-        for iso in (_fix_iso2(rec) for rec in shapereader.Reader(shp).records())
+        for iso in (_fix_iso2(rec) for rec in records)
         if iso is not None
     }
     drawn_total = float(s_num[s_num.index.isin(drawable)].sum())
@@ -535,7 +514,7 @@ def plot_choropleth_with_labels(
     ax.add_feature(cfeature.COASTLINE, linewidth=0.35, zorder=2)
     ax.add_feature(cfeature.BORDERS, linewidth=0.25, zorder=2)
 
-    shp = shapereader.natural_earth("50m", "cultural", "admin_0_countries")
+    records = _natural_earth_country_records()
 
     data = s.dropna()
     if exclude_from_scale:
@@ -553,7 +532,7 @@ def plot_choropleth_with_labels(
 
     if absolute_bar_series is not None and absolute_bar_vmax_auto:
         visible_bar_vals = []
-        for rec in shapereader.Reader(shp).records():
+        for rec in records:
             iso2, geom = _fix_iso2(rec), rec.geometry
             if only_iso is not None and iso2 not in only_iso:
                 continue
@@ -593,12 +572,12 @@ def plot_choropleth_with_labels(
             eu_vals = s.loc[list(eu_members)].astype(float)
             eu_total = float(eu_vals.where(eu_vals.abs() >= thr_color, 0.0).sum())
         if dissolve_eu and eu_members:
-            geoms = [rec.geometry for rec in shapereader.Reader(shp).records()
+            geoms = [rec.geometry for rec in records
                      if _fix_iso2(rec) in eu_members]
             if geoms:
                 eu_union = unary_union(geoms)
 
-    for rec in shapereader.Reader(shp).records():
+    for rec in records:
         iso2, geom = _fix_iso2(rec), rec.geometry
         if only_iso is not None and iso2 not in only_iso:
             continue
@@ -840,10 +819,10 @@ def add_absolute_country_bars(
     skip_iso = {str(c).strip() for c in (skip_iso or set())}
     scale_iso = {str(c).strip() for c in (scale_iso or set())} if scale_iso else None
 
-    shp = shapereader.natural_earth("50m", "cultural", "admin_0_countries")
+    records = _natural_earth_country_records()
 
     points = {}
-    for rec in shapereader.Reader(shp).records():
+    for rec in records:
         iso2 = _fix_iso2(rec)
         if iso2 in skip_iso:
             continue
@@ -967,6 +946,71 @@ def add_absolute_country_bars(
 # ==============================================================
 # 6) WRAPPER (same calculation logic; saves PDFs)
 # ==============================================================
+
+def _resolve_total_results_by_origin(
+    results_by_origin,
+    components_map: dict[str, list[str]],
+) -> tuple[pd.DataFrame, object]:
+    """Return the explicit aggregate Total table and its component level.
+
+    ``results_by_origin`` is normally shaped as
+    ``{level: {component: DataFrame}}``.  The MRIO pipeline stores the
+    aggregate as the explicit ``"Total"`` key at each available level, so it
+    must be selected directly rather than reconstructed from component tables.
+    """
+    if not isinstance(results_by_origin, dict):
+        raise TypeError("results_by_origin must be a level-to-component mapping.")
+
+    component_keys = {
+        component
+        for components in components_map.values()
+        for component in components
+        if str(component).strip().casefold() != "total"
+    }
+    candidates = []
+
+    for level, level_results in results_by_origin.items():
+        if not isinstance(level_results, dict):
+            continue
+        total_key = next(
+            (
+                key for key, value in level_results.items()
+                if str(key).strip().casefold() == "total"
+                and isinstance(value, pd.DataFrame)
+            ),
+            None,
+        )
+        if total_key is None or not component_keys.issubset(level_results):
+            continue
+        candidates.append((level, level_results[total_key]))
+
+    if not candidates:
+        raise KeyError(
+            "No explicit 'Total' aggregate was found at a level containing "
+            "all components required by components_map."
+        )
+
+    # Prefer the most detailed available numeric level, matching the existing
+    # component-map behavior without assuming that a particular level exists.
+    numeric = [item for item in candidates if isinstance(item[0], (int, np.integer))]
+    if numeric:
+        selected = max(numeric, key=lambda item: int(item[0]))
+        return selected[1], selected[0]
+    return candidates[-1][1], candidates[-1][0]
+
+
+def _prepare_paper_component_results(
+    results_by_origin,
+    components_map: dict[str, list[str]],
+) -> dict[str, pd.DataFrame]:
+    """Prepare the total and component result tables once per paper-map run."""
+    total_results, component_level = _resolve_total_results_by_origin(
+        results_by_origin, components_map
+    )
+    level_results = results_by_origin[component_level]
+    prepared = _aggregate_components_from_base(level_results, components_map)
+    prepared["Total"] = total_results
+    return prepared
 
 def plot_deployment_supplychain_maps(
     results_by_origin,
@@ -1288,7 +1332,7 @@ def plot_deployment_supplychain_maps(
             s_plot = s_plot * value_scale
             label_formatter = fmt_int
             min_plot_value = float(min_plot_jobs)
-            title_suffix = " (jobs per year)" if bool(annualize) else f" (job-years, cumulative {lifetime_years:g}-year)"
+            title_suffix = " (FTE)" if bool(annualize) else " (FTE-years)"
         else:
             # Convert monetary impacts to millions
             s_plot = s_plot * value_scale / 1_000_000.0
@@ -1355,7 +1399,7 @@ def plot_deployment_supplychain_maps(
         if show_absolute_bars:
             title_type = "Employment" if str(impact_type).upper() == "JOBS" else impact_type
             if str(impact_type).upper() == "JOBS":
-                unit_text = "jobs per year" if bool(annualize) else f"job-years, cumulative {lifetime_years:g}-year"
+                unit_text = "FTE" if bool(annualize) else "FTE-years"
             else:
                 unit_text = "million EUR per year" if bool(annualize) else f"million EUR, cumulative {lifetime_years:g}-year"
             title_tail = f"{title_type} ({unit_text})"
@@ -1364,7 +1408,7 @@ def plot_deployment_supplychain_maps(
             title_tail = f"{share_type} capture (% of {scope_label} total)"
     elif as_multiplier:
         if str(impact_type).upper() == "JOBS":
-            title_tail = "Employment multiplier [job-years/mEUR]"
+            title_tail = "Employment multiplier [FTE/mEUR]" if bool(annualize) else "Employment multiplier [FTE-years/mEUR]"
         else:
             title_tail = "GVA multiplier [EUR/EUR]" if str(impact_type).upper() == "GVA" else f"{impact_type} multiplier"
     else:
@@ -1376,7 +1420,7 @@ def plot_deployment_supplychain_maps(
             title_type = impact_type
 
         if impact_type == "Jobs":
-            unit_text = "jobs per year" if bool(annualize) else f"job-years, cumulative {lifetime_years:g}-year"
+            unit_text = "FTE" if bool(annualize) else "FTE-years"
         else:
             unit_text = "million EUR per year" if bool(annualize) else f"million EUR, cumulative {lifetime_years:g}-year"
 
@@ -1614,13 +1658,20 @@ def plot_paper_eu27_component_share_maps(
 ):
     """Save the paper D.1 EU27 component value-capture maps."""
     outputs = []
+    prepared_results = _prepare_paper_component_results(
+        results_by_origin, components_map
+    )
+    component_labels = ["Total"] + [c for c in components_map if c != "Total"]
     for ind in indicators:
-        for comp_label in components_map:
+        for comp_label in component_labels:
+            plot_kwargs = dict(
+                results_by_origin=prepared_results[comp_label],
+                components_map=None,
+                component_label=None,
+            )
             outputs.append(
                 plot_deployment_supplychain_maps(
-                    results_by_origin=results_by_origin,
-                    components_map=components_map,
-                    component_label=comp_label,
+                    **plot_kwargs,
                     deployment=core_deployment[0],
                     deployments_avg=core_deployment,
                     avg_label="Average",
@@ -1635,6 +1686,7 @@ def plot_paper_eu27_component_share_maps(
                     lifetime_years=lifetime_years,
                     show_absolute_bars=True,
                     connected_country=connected_country,
+                    vmax_E=30.0,
                     save=save,
                     close=close,
                 )
@@ -1655,13 +1707,20 @@ def plot_paper_world_component_share_maps(
 ):
     """Save the paper D.2 world component value-capture maps."""
     outputs = []
+    prepared_results = _prepare_paper_component_results(
+        results_by_origin, components_map
+    )
+    component_labels = ["Total"] + [c for c in components_map if c != "Total"]
     for ind in indicators:
-        for comp_label in components_map:
+        for comp_label in component_labels:
+            plot_kwargs = dict(
+                results_by_origin=prepared_results[comp_label],
+                components_map=None,
+                component_label=None,
+            )
             outputs.append(
                 plot_deployment_supplychain_maps(
-                    results_by_origin=results_by_origin,
-                    components_map=components_map,
-                    component_label=comp_label,
+                    **plot_kwargs,
                     deployment=core_deployment[0],
                     deployments_avg=core_deployment,
                     avg_label="Average",
@@ -1671,7 +1730,8 @@ def plot_paper_world_component_share_maps(
                     filename_prefix=f"D.2.map_effects_{comp_label}",
                     title_prefix=comp_label,
                     as_share=True,
-                    connected_country=connected_country,
+                    share_scope="global",
+                    eu_only=False,
                     plot_world=True,
                     plot_eu=False,
                     save=save,
@@ -1679,7 +1739,3 @@ def plot_paper_world_component_share_maps(
                 )
             )
     return outputs
-
-
-
-
