@@ -1,5 +1,8 @@
 # Proposed pull request: Energy Economics submission archive
 
+**Historical note:** PR #1 was merged on November 6, 2026. The proposed title and pre-merge instructions below describe that historical review, not the current status. The manuscript's current title is **What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs**.
+
+
 **Base:** `main`
 
 **Head:** `paper/energy-economics`

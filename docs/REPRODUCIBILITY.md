@@ -1,5 +1,8 @@
 # Reproducibility workflow
 
+**Manuscript:** What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs. The EU27 reference sourcing profile uses BE, DK, DE, and NL; counterfactuals shift equivalent production quantities only in Turbine/BoP, with central μ = 0.3.
+
+
 ## Scope
 
 `main.ipynb` is the executable paper workflow. It retains the finalized model

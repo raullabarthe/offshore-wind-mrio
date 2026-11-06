@@ -1,15 +1,15 @@
-# Supplementary-material map
+# Supplementary material map
 
-This repository contains the executable processed inputs B1, B2, and C1, plus the final C2 and D output workbooks under `results/supplementary/`. The remaining manuscript supplementary materials should be checked against the final submitted manuscript before distribution.
+For **What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs**, results refer to a representative **1 GW EU27 project** over **25 years**. The baseline covers all major project components, while procurement changes apply to **Turbine and BoP**. Employment is reported in **cumulative FTE-years**.
 
-| Material | Role | Repository status |
+| Material | Role | Status |
 | --- | --- | --- |
-| `Supplementary_Material.pdf` | Methodological description and source documentation | Release asset; not currently committed |
-| `Supplementary_Material_A_Cost_Model.xlsx` | Cost-model audit workbook | Release asset; not required by notebook |
-| `Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Processed wind-farm sourcing input (`sourcing_long`) | Committed public input |
-| `Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Turbine sourcing input sheets | Committed public input |
-| `Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Industrial cost mapping (`mapping_long`) | Committed public input |
-| `results/supplementary/Supplementary_Material_C2_Wages_Calculation.xlsx` | Employment/FTE calculation and audit | Committed final publication output; external-source dependent |
-| `results/supplementary/Supplementary_Material_D_Detailed_Results.xlsx` | Detailed model results | Committed final publication output; not a runtime input |
+| `Supplementary_Material.pdf` | Detailed methodology and sources | Separate asset; not committed |
+| `Supplementary_Material_A_Cost_Model.xlsx` | Cost model documentation/audit | Separate asset; not committed |
+| `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Non-turbine sourcing | Tracked processed input |
+| `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Turbine sourcing | Tracked processed input |
+| `modules/mrio_analysis/helpers/Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Industrial cost mapping | Tracked processed input |
+| `results/supplementary/Supplementary_Material_C2_Wages_Calculation.xlsx` | Employment coefficients/source audit | Tracked output |
+| `results/supplementary/Supplementary_Material_D_Detailed_Results.xlsx` | Detailed economic results | Tracked output |
 
-The final figures and LaTeX tables are likewise committed under `results/images/` and `results/tables/`. Runtime cache directories under `results/supplementary/cache*/` remain excluded from Git. The raw TGS 4C Offshore supplier-contract source files used in an internal preprocessing pipeline are not supplementary materials and are not redistributable through this repository. B1 is the public processed replacement used by `main.ipynb`.
+Figures and LaTeX tables are in `results/images/` and `results/tables/`. **Verify the tracked D workbook against the latest manuscript/export before a tagged release:** a local file previously referred to as `Supplementary_Material_D_Sourcing_Weights.xlsx` must not automatically be assumed identical. Runtime caches remain untracked. The original raw TGS 4C Offshore contracts are not included; processed inputs/outputs still require the source-specific redistribution review documented in [docs/DATA_LICENSE_AUDIT.md](docs/DATA_LICENSE_AUDIT.md).

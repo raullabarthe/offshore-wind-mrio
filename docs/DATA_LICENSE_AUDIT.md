@@ -1,8 +1,10 @@
 # Data and licence audit
 
+**Current status:** the files discussed here may already be publicly visible in the merged `main` tree. Unverified rights remain unverified, despite the public push. This is a record of release and remediation needs, not confirmation of a license.
+
+
 **Status:** publication decision record, not legal advice.
-**Scope:** files intended to be public in the paper/energy-economics staged
-index. Runtime caches and raw TGS 4C Offshore files are excluded. A transformed
+**Scope:** files committed in the now-merged public repository. Runtime caches and raw TGS 4C Offshore files are excluded. A transformed
 or aggregated file is not presumed redistributable unless the applicable source
 terms or written permission allow it.
 

@@ -1,5 +1,8 @@
 # Provenance and integrity record
 
+**Historical record:** This describes preparation of the branch before PR #1 was merged into `main` on November 6, 2026. Hashes below are snapshots, not assertions about the present documentation commit.
+
+
 ## Source relationship
 
 - Publication branch: `paper/energy-economics`

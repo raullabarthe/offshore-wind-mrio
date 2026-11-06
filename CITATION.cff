@@ -1,10 +1,10 @@
 cff-version: 1.2.0
-message: "If you use this repository, please cite the software and its associated manuscript."
-title: "Computational model for Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?"
+message: "If you use this repository, cite the computational model and associated manuscript."
+title: "Computational model for What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs"
 type: software
 authors:
   - family-names: "Labarthe"
-    given-names: "Raul"
+    given-names: "Raúl"
     orcid: "https://orcid.org/0009-0001-6798-330X"
   - family-names: "Hansen"
     given-names: "Ulrich Elmer"
@@ -13,21 +13,22 @@ authors:
     given-names: "Anastasia"
     orcid: "https://orcid.org/0000-0003-3864-2749"
 repository-code: "https://github.com/raullabarthe/offshore-wind-mrio"
-abstract: "Computational model and non-proprietary processed inputs for a component-level MRIO analysis of manufacturing procurement reallocations in offshore wind auctions."
+abstract: "Computational model and processed research materials for an offshore-wind FIGARO MRIO study of the geographical capture of GVA and FTE-years, and EU27/non-EU27 turbine and BoP sourcing reallocations."
 keywords:
-  - "wind energy"
-  - "input-output analysis"
-  - "renewable energy auctions"
-  - "green industrial policy"
-  - "global value chains"
   - "offshore wind"
-  - "MRIO"
+  - "gross value added"
+  - "employment"
+  - "FTE-years"
+  - "FIGARO"
+  - "global value chains"
+  - "sourcing reallocation"
+  - "green industrial policy"
 preferred-citation:
   type: article
-  title: "Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?"
+  title: "What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs"
   authors:
     - family-names: "Labarthe"
-      given-names: "Raul"
+      given-names: "Raúl"
       orcid: "https://orcid.org/0009-0001-6798-330X"
     - family-names: "Hansen"
       given-names: "Ulrich Elmer"
@@ -35,5 +36,4 @@ preferred-citation:
     - family-names: "Ioannou"
       given-names: "Anastasia"
       orcid: "https://orcid.org/0000-0003-3864-2749"
-  journal: "Energy Economics"
-  notes: "Manuscript submission version; bibliographic details are pending."
+  notes: "Preprint/submission-stage manuscript. Bibliographic details and DOI are not yet established."

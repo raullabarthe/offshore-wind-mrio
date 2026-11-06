@@ -1,10 +1,10 @@
 {
-  "title": "Computational model for Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?",
+  "title": "Computational model for What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs",
   "upload_type": "software",
   "creators": [
     {
-      "name": "Labarthe, Raul",
-      "orcid": "0000-0001-6798-330X",
+      "name": "Labarthe, Raúl",
+      "orcid": "0009-0001-6798-330X",
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     },
     {
@@ -18,15 +18,15 @@
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     }
   ],
-  "description": "Submission-version computational model for a component-level multiregional input-output analysis of offshore-wind manufacturing procurement reallocations. A public release requires final licensing, coauthor review, and restricted-data checks.",
+  "description": "Preprint-stage computational model combining component sourcing and FIGARO MRIO to examine GVA and employment capture for a 1 GW offshore wind farm and counterfactual EU27/non-EU27 turbine and BoP procurement reallocations. No software release or DOI is yet established; verify data rights and coauthor approvals before formal publication.",
   "keywords": [
-    "wind energy",
-    "input-output analysis",
-    "renewable energy auctions",
-    "green industrial policy",
-    "global value chains",
     "offshore wind",
-    "MRIO"
+    "FIGARO",
+    "global value chains",
+    "gross value added",
+    "FTE-years",
+    "sourcing reallocation",
+    "green industrial policy"
   ],
   "access_right": "open",
   "related_identifiers": [
