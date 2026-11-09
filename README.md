@@ -1,4 +1,4 @@
-# What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs
+# Made in Europe for offshore wind? Value added, employment, and sourcing trade-offs
 
 Computational research repository accompanying the preprint/submission-stage manuscript by **Raúl Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou** (DTU Wind and Energy Systems). No journal acceptance, software release, or DOI is claimed.
 
