@@ -1,4 +1,4 @@
-# Made in Europe for offshore wind? Value added, employment, and sourcing trade-offs
+# Made in Europe for offshore wind? Value added, employment, and cost trade-offs
 
 Computational research repository accompanying the preprint/submission-stage manuscript by **Raúl Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou** (DTU Wind and Energy Systems). No journal acceptance, software release, or DOI is claimed.
 
