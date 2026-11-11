@@ -54,16 +54,14 @@ jupyter lab main.ipynb
 
 The notebook uses paths derived from `modules/config.py`, so it must be run from a clone of this repository or opened with the repository as the working directory. It does not rely on the original Windows project path.
 
-## Inputs and restrictions
+## Model inputs
 
-The repository includes the processed B1 and B2 sourcing workbooks, classifications, exchange-rate inputs, employment-source adapters, and the prepared FIGARO 2024 core/ROW matrix needed for the documented public workflow. Local employment downloads are obtained through the documented public sources and are ignored. B1 and B2 are author-processed inputs, not the raw TGS 4C Offshore or WindEurope source databases; their provenance and remaining third-party licensing questions are recorded in [docs/DATA_LICENSE_AUDIT.md](docs/DATA_LICENSE_AUDIT.md).
-
-Raw TGS 4C Offshore supplier-contract files and other restricted raw allocation sheets are not redistributed. The public workflow uses the processed supplementary inputs instead. Do not replace a restricted input with synthetic data and assume that this demonstrates exact reproduction; document the limitation and obtain the source through its permitted acquisition route.
+The repository includes the processed B1 and B2 sourcing workbooks, industry classifications, exchange-rate inputs, employment-source adapters, and the prepared FIGARO 2024 core/ROW matrix. Additional employment source data can be obtained through the documented source APIs. Generated data and runtime caches are excluded.
 
 ## Validation reference
 
 The validated local results used as the comparison reference are approximately EUR 6.6 billion global GVA, 90,000 global FTE-years, 71% EU27 GVA capture, and 41% EU27 employment capture. Full reshoring is approximately +8% EU27 GVA, +3,300 FTE-years, and +1.3% project expenditure; full offshoring is approximately −39% EU27 GVA, −16,000 FTE-years, and −6.2% project expenditure. These are rounded reporting values, not hard-coded targets. See [docs/VALIDATION.md](docs/VALIDATION.md) for the validation record and limitations.
 
-## Citation and license
+## Citation
 
-Use `CITATION.cff` for citation metadata. No manuscript acceptance, software DOI, GitHub release, or Zenodo publication is implied by this repository. A license should be selected and recorded before a public software release if the authors require one.
+See `CITATION.cff` for the manuscript and model citation.
