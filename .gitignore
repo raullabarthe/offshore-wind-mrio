@@ -37,8 +37,6 @@ modules/supply_chain/sources/**/~$*.xlsx
 old/
 
 # Restricted raw supplier-contract files. Do not publish unless redistribution rights are confirmed.
-modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx
-modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx
 modules/supply_chain/sources/wind_farm/4COffshore_suppliers.xlsx
 modules/supply_chain/sources/wind_farm/4COffshore_windfarms.xlsx
 modules/supply_chain/sources/wind_farm/4COffshore_manual.xlsx

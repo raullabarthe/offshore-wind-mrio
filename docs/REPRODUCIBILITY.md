@@ -29,8 +29,8 @@ Run the notebook cells in order. The workflow:
 
 | Input class | Repository location or source | Reproduction status |
 | --- | --- | --- |
-| Processed wind-farm sourcing | `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Required local input; retained in the local archive but not uploaded until TGS redistribution permission is verified |
-| Processed turbine sourcing | `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Required local input; retained in the local archive but not uploaded until WindEurope redistribution permission is verified |
+| Processed wind-farm sourcing | `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Included processed model input; raw TGS 4C Offshore files are not included |
+| Processed turbine sourcing | `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Included processed model input; raw WindEurope/source databases are not included |
 | Cost-to-industry mapping | `modules/mrio_analysis/helpers/Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Included public processed input |
 | Classifications and crosswalks | `modules/mrio_analysis/helpers/` | Included |
 | FIGARO 2024 prepared matrix | `modules/mrio_analysis/datasets/mrio/2024/MRIO_2024_CORE_ROW_ind_by_ind.parquet` | Included processed input |
@@ -38,7 +38,7 @@ Run the notebook cells in order. The workflow:
 | Employment sources | Eurostat, ILOSTAT, and bounded OECD candidates | Obtain through the documented public downloads/APIs; local downloads and caches are ignored because source terms and responses can change |
 | Raw TGS 4C Offshore supplier-contract files | Local restricted source material | Not redistributed; the public notebook uses processed B1/B2 workbooks |
 
-The restricted raw files and the unverified B1/B2 processed workbooks are not silently substituted with synthetic data. A fresh clone can validate the code structure and rebuild the MRIO/employment pieces, but a complete scenario run requires the locally retained B1/B2 workbooks or approved replacement inputs. Exact rebuilding of every derived employment and scenario artifact may also require external data access and the locally retained runtime caches.
+The restricted raw files are not redistributed, but the author-processed B1/B2 workbooks required by the notebook are included. A fresh clone can therefore execute the sourcing stage from the published processed inputs. Exact rebuilding of every derived employment and scenario artifact may still require external data access; runtime caches remain excluded and are rebuilt locally when absent. Any third-party licensing or attribution conditions for the processed B1/B2 derivatives remain documented separately in `docs/DATA_LICENSE_AUDIT.md` and are not represented here as legally cleared.
 
 ## Outputs and Git policy
 
