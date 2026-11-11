@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this repository, please cite the archived release."
+message: "If you use this repository, please cite the computational model and associated manuscript."
 title: "Made in Europe for offshore wind? Value added, employment, and cost trade-offs"
 type: software
 authors:
@@ -13,7 +13,7 @@ authors:
     given-names: "Anastasia"
     orcid: "https://orcid.org/0000-0003-3864-2749"
 repository-code: "https://github.com/raullabarthe/offshore-wind-mrio"
-abstract: "Computational model and non-proprietary data-processing materials for a FIGARO 2024 MRIO analysis of value added, employment, and cost trade-offs in offshore wind sourcing."
+abstract: "Computational model and processed sourcing inputs for a FIGARO 2024 MRIO analysis of value added, employment, and cost trade-offs in offshore wind sourcing."
 keywords:
   - "wind energy"
   - "input-output analysis"
@@ -21,8 +21,6 @@ keywords:
   - "local content requirements"
   - "green industrial policy"
   - "global value chains"
-version: "1.0.0-paper-submission"
-date-released: "2026-07-08"
 preferred-citation:
   type: article
   title: "Made in Europe for offshore wind? Value added, employment, and cost trade-offs"

@@ -1,6 +1,6 @@
 # Reproducibility
 
-This repository contains the computational implementation accompanying **“Made in Europe for offshore wind? Value added, employment, and cost trade-offs”**, prepared for submission to *Energy Economics*. The authoritative local publication archive also retains generated results and caches; those generated artifacts are deliberately excluded from GitHub.
+This repository contains the computational implementation accompanying **“Made in Europe for offshore wind? Value added, employment, and cost trade-offs”**, prepared for submission to *Energy Economics*. Generated outputs and runtime caches are not included in the GitHub repository.
 
 ## Supported environment
 
@@ -18,7 +18,7 @@ Run the notebook cells in order. The workflow:
 3. loads the processed B1 wind-farm and B2 turbine sourcing workbooks;
 4. maps cost items to the included industry classifications and FIGARO A64 industries;
 5. loads the prepared FIGARO 2024 26ed industry-by-industry core/ROW matrix;
-6. applies the corrected input-output normalization `A_ij = Z_ij / X_j`, where each intermediate-input column is divided by the output of the purchasing industry;
+6. constructs input–output coefficients as `A_ij = Z_ij / X_j`, where each intermediate-input column is divided by the output of the purchasing industry;
 7. builds industrial employment coefficients from Eurostat and ILOSTAT inputs, using the ILOSTAT World anchor and a World-minus-explicit-FIGARO-country residual for ROW;
 8. calculates baseline global and EU27 GVA and employment impacts;
 9. evaluates turbine, balance-of-plant, full reshoring, full offshoring, supplier-price, and component-level sourcing scenarios;
@@ -41,11 +41,11 @@ B1, B2, and C1 are included in the repository and loaded by the public notebook.
 
 ## Outputs and Git policy
 
-The notebook writes generated artifacts below `results/images/`, `results/tables/`, and `results/supplementary/`. Scenario, MRIO, employment, and source-audit caches are also generated locally. These paths are ignored and are not part of the clean GitHub publication. The complete local publication copy and its backup retain the validated figures, tables, workbooks, and caches for reference.
+The notebook writes generated artifacts below `results/images/`, `results/tables/`, and `results/supplementary/`. Scenario, MRIO, employment, and source-audit caches are also generated locally. These paths are ignored and are not part of the clean GitHub publication. Figures, tables, workbooks, and caches are generated locally when the relevant calculations and export settings are enabled.
 
-The notebook committed to GitHub is code-only: execution outputs and embedded figures are cleared before publication. Run it in a disposable or ignored output tree when validating a clone so that archived local results are not overwritten.
+The notebook committed to GitHub is code-only: execution outputs and embedded figures are cleared before publication. Run the notebook from the repository root, with generated outputs written to ignored local paths.
 
-## Validation and limitations
+## Reference results and reproducibility
 
 The rounded manuscript reference values are approximately:
 

@@ -1,4 +1,4 @@
-# Made in Europe for offshore wind?
+# Made in Europe for offshore wind? Value added, employment, and cost trade-offs
 
 Computational model accompanying the manuscript **“Made in Europe for offshore wind? Value added, employment, and cost trade-offs”** by Raul Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou (Technical University of Denmark), prepared for submission to *Energy Economics*.
 
@@ -10,9 +10,9 @@ The implementation covers:
 
 - offshore-wind farm cost, component, and subcomponent allocations;
 - turbine and balance-of-plant sourcing scenarios;
-- FIGARO 2024 MRIO integration with corrected input-output normalization (`A_ij = Z_ij / X_j`);
+- FIGARO 2024 MRIO accounting with input–output coefficients `A_ij = Z_ij / X_j`;
 - baseline GVA and employment calculations using Eurostat and ILOSTAT sources, including an ILOSTAT World anchor and World-minus-FIGARO residual ROW treatment;
-- supplier price assumptions, the finalized lower-cost supplier classification, and the central `mu = 0.30` sensitivity with its delta scenarios;
+- supplier price assumptions, the specified lower-cost supplier group, and the central `mu = 0.30` sensitivity with its delta scenarios;
 - generation of manuscript figures, tables, and supplementary workbooks.
 
 ## Repository layout
@@ -60,7 +60,7 @@ The repository includes the processed B1 and B2 sourcing workbooks, industry cla
 
 ## Validation reference
 
-The validated local results used as the comparison reference are approximately EUR 6.6 billion global GVA, 90,000 global FTE-years, 71% EU27 GVA capture, and 41% EU27 employment capture. Full reshoring is approximately +8% EU27 GVA, +3,300 FTE-years, and +1.3% project expenditure; full offshoring is approximately −39% EU27 GVA, −16,000 FTE-years, and −6.2% project expenditure. These are rounded reporting values, not hard-coded targets. See [docs/VALIDATION.md](docs/VALIDATION.md) for the validation record and limitations.
+The model's reference results are approximately EUR 6.6 billion global GVA, 90,000 global FTE-years, 71% EU27 GVA capture, and 41% EU27 employment capture. Full reshoring is approximately +8% EU27 GVA, +3,300 FTE-years, and +1.3% project expenditure; full offshoring is approximately −39% EU27 GVA, −16,000 FTE-years, and −6.2% project expenditure. These are rounded reporting values. See [docs/VALIDATION.md](docs/VALIDATION.md) for the numerical reference values and available checks.
 
 ## Citation
 
