@@ -12,7 +12,7 @@ authors:
   - family-names: "Ioannou"
     given-names: "Anastasia"
     orcid: "https://orcid.org/0000-0003-3864-2749"
-repository-code: "https://github.com/raullabarthe/offshore-mrio"
+repository-code: "https://github.com/raullabarthe/offshore-wind-mrio"
 abstract: "Computational model and non-proprietary data-processing materials for a FIGARO 2024 MRIO analysis of value added, employment, and cost trade-offs in offshore wind sourcing."
 keywords:
   - "wind energy"

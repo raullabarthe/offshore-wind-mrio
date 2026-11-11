@@ -1,5 +1,8 @@
 # Validation record
 
+**Manuscript:** What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs. The results and checks below are historical reporting audits, not newly executed model runs.
+
+
 Validation is deliberately read-only with respect to the finalized source
 project and its production caches.
 

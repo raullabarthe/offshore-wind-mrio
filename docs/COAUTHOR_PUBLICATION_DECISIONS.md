@@ -1,6 +1,9 @@
 # Coauthor publication decisions
 
-Please decide the following before any public push or release.
+**Current status:** The repository is already public and the first PR has merged. These data-rights and coauthor decisions remain unresolved for any formal release; visibility is not permission to redistribute.
+
+
+Outstanding decisions to address in the current public repository and before any formal release:
 
 1. **B1 / TGS 4C Offshore:** Do we have written permission to publish the
    processed sourcing workbook, including its aggregation level and all derived
@@ -21,5 +24,4 @@ Please decide the following before any public push or release.
 6. **Large result workbook:** Decide whether the 68.42 MiB D workbook remains
    in ordinary Git, moves to Git LFS, or is a checked release asset.
 
-No public commit, push, merge, tag, release, or Zenodo deposit should occur
-until these decisions are recorded.
+Do not create a formal tagged release or Zenodo deposit before recording these decisions. Review already-public materials for any rights issues.

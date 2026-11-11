@@ -1,5 +1,8 @@
 # Archive inventory
 
+**Historical inventory:** This describes the selection used when creating the now-merged branch; refer to the root README and release checklist for the current manuscript and repository status.
+
+
 This inventory records the conservative selection used to create the Energy
 Economics submission branch. It is a publication archive, not a replacement
 for the original working directory.

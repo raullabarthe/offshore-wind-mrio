@@ -33,7 +33,7 @@
   "access_right": "open",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/raullabarthe/offshore-mrio",
+      "identifier": "https://github.com/raullabarthe/offshore-wind-mrio",
       "relation": "isSupplementTo",
       "scheme": "url"
     }
