@@ -1,10 +1,11 @@
 {
-  "title": "Computational model for Targeting Made-in-Europe rules in wind energy auctions: Which components should be covered?",
+  "title": "Made in Europe for offshore wind? Value added, employment, and cost trade-offs",
   "upload_type": "software",
+  "publication_date": "2026-07-08",
   "creators": [
     {
       "name": "Labarthe, Raul",
-      "orcid": "0000-0001-6798-330X",
+      "orcid": "0009-0001-6798-330X",
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     },
     {
@@ -18,11 +19,12 @@
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     }
   ],
-  "description": "Submission-version computational model for a component-level multiregional input-output analysis of offshore-wind manufacturing procurement reallocations. A public release requires final licensing, coauthor review, and restricted-data checks.",
+  "description": "Computational model for a FIGARO 2024 multiregional input-output analysis of value added, employment, and cost trade-offs in offshore wind sourcing.",
   "keywords": [
     "wind energy",
     "input-output analysis",
     "renewable energy auctions",
+    "local content requirements",
     "green industrial policy",
     "global value chains",
     "offshore wind",
@@ -31,7 +33,7 @@
   "access_right": "open",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/raullabarthe/offshore-wind-mrio",
+      "identifier": "https://github.com/raullabarthe/offshore-mrio",
       "relation": "isSupplementTo",
       "scheme": "url"
     }

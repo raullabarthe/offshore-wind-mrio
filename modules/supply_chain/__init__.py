@@ -12,4 +12,4 @@ Submódulos:
 """
 
 __version__ = "1.0.0"
-__author__ = "Energy Policy paper project"
+__author__ = "Energy Economics paper project"

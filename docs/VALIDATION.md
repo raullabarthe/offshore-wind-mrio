@@ -13,8 +13,8 @@ The existing native LaTeX outputs report these rounded manuscript checks:
 | Global baseline employment | 90 thousand FTE-years |
 | EU27 baseline GVA capture | 71% |
 | EU27 baseline employment capture | 41% |
-| Full resilience, central price assumption | GVA +7.7%, employment +9.0%, procurement +1.5% |
-| Full offshoring, central price assumption | GVA -39%, employment -42%, procurement -6.6% |
+| Full resilience, central price assumption | EU27 GVA +7.6%, employment +3.3 thousand FTE-years, procurement +1.3% |
+| Full offshoring, central price assumption | EU27 GVA -39%, employment -16 thousand FTE-years, procurement -6.2% |
 
 The figures are read from the archived source tables; no scenarios were rerun,
 no production cache was written, and no result was changed to match these
@@ -53,12 +53,13 @@ regenerate caches and requires external employment sources.
 - Source output tables contain the expected native reporting values for the
   central resilience/offshoring GVA, employment, and procurement rows, and the
   6568/90/71%/41% baseline benchmarks.
-- Complete-results transfer: all 132 source `results/` files (1.52 GiB),
-  including final C2 and D workbooks, have matching SHA-256 hashes in this
-  archive; there are zero missing, extra, or mismatched result files.
+- Complete-results transfer: all source `results/` files, including final C2
+  and D workbooks, remain in the complete local publication archive; they are
+  ignored and are not part of the clean GitHub staging set.
 - Ignore checks: generated scenario cache paths, the known restricted raw B1
-  supplier file, and full FIGARO flatfile paths are ignored. Final figures,
-  tables, and C2/D publication outputs are intentionally not ignored.
+  supplier file, full FIGARO flatfile paths, and generated result paths are
+  ignored. Final figures, tables, and C2/D publication outputs remain local
+  and are intentionally not staged.
 
 The staged diff has 976 whitespace diagnostics, all in imported current source
 code or classification data; none is in the archive documentation. They are

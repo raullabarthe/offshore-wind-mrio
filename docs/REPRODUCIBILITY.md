@@ -1,45 +1,61 @@
-# Reproducibility workflow
+# Reproducibility
 
-## Scope
+This repository contains the computational implementation accompanying **“Made in Europe for offshore wind? Value added, employment, and cost trade-offs”**, prepared for submission to *Energy Economics*. The authoritative local publication archive also retains generated results and caches; those generated artifacts are deliberately excluded from GitHub.
 
-`main.ipynb` is the executable paper workflow. It retains the finalized model
-logic and uses paths defined only through `modules.config`; it does not depend
-on the original local project location.
+## Supported environment
 
-## Ordered workflow
+- Python 3.13, as specified by `.python-version` and enforced by `setup_env.ps1`.
+- Windows setup: run `Set-ExecutionPolicy -Scope Process Bypass` followed by `.\setup_env.ps1`.
+- Manual setup: create a virtual environment, install `requirements.txt`, and open `main.ipynb` with JupyterLab.
+- The notebook and modules resolve paths from `modules/config.py` relative to the project root. No path depends on the original local Windows directory.
 
-1. Configure project cost assumptions and exchange rates.
-2. Load B2 and construct turbine OEM/supplier/facility sourcing allocations.
-3. Load B1 processed sourcing shares to construct other wind-farm component
-   allocations; raw 4C Offshore data are not read by the public notebook.
-4. Load C1 and classifications to map component costs to FIGARO industries.
-5. Load the included 2024 prepared FIGARO core/ROW industry matrix. Rebuilding
-   it requires the externally downloaded FIGARO industry-by-industry flatfile.
-6. Construct employment/FTE coefficients from Eurostat, ILOSTAT, and bounded
-   OECD source data when no local cache is present.
-7. Calculate baseline GVA and employment impacts.
-8. Load or calculate EU27 resilience/offshoring counterfactuals and procurement
-   price sensitivities.
-9. Generate manuscript tables, figures, and supplementary result workbooks in
-   `results/` when the relevant save/export settings are enabled.
+## Computational workflow
 
-## Input classes
+Run the notebook cells in order. The workflow:
 
-| Class | Inputs | Reproduction implication |
+1. loads cost assumptions and exchange-rate inputs for the representative offshore wind farm;
+2. constructs component and subcomponent sourcing allocations for turbine and balance-of-plant items;
+3. loads the processed B1 wind-farm and B2 turbine sourcing workbooks;
+4. maps cost items to the included industry classifications and FIGARO A64 industries;
+5. loads the prepared FIGARO 2024 26ed industry-by-industry core/ROW matrix;
+6. applies the corrected input-output normalization `A_ij = Z_ij / X_j`, where each intermediate-input column is divided by the output of the purchasing industry;
+7. builds industrial employment coefficients from Eurostat and ILOSTAT inputs, using the ILOSTAT World anchor and a World-minus-explicit-FIGARO-country residual for ROW;
+8. calculates baseline global and EU27 GVA and employment impacts;
+9. evaluates turbine, balance-of-plant, full reshoring, full offshoring, supplier-price, and component-level sourcing scenarios;
+10. runs the central `mu = 0.30` case, the main sensitivity range, and the complete delta scenario calculations; and
+11. writes figures, tables, and supplementary workbooks to `results/` when the notebook export settings are enabled.
+
+## Inputs and provenance
+
+| Input class | Repository location or source | Reproduction status |
 | --- | --- | --- |
-| Included public processed inputs | B1, B2, C1, exchange rates, classifications, prepared FIGARO core matrix | Available in a fresh clone |
-| External public sources | Full FIGARO flatfile, Eurostat, ILOSTAT, OECD | Download or query only when rebuilding their derived artifacts; APIs/releases can change |
-| Restricted source material | Raw TGS 4C Offshore supplier-contract files and internal raw allocation sheets | Not included and not needed for the public B1/B2 workflow |
-| Final publication outputs | `results/images/`, `results/tables/`, C2/D workbooks | Version-controlled scientific outputs, retained at their original relative paths |
-| Runtime caches | `results/supplementary/cache*/` | Retained in the complete local archive but ignored by Git; rebuilt locally when absent |
+| Processed wind-farm sourcing | `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Required local input; retained in the local archive but not uploaded until TGS redistribution permission is verified |
+| Processed turbine sourcing | `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Required local input; retained in the local archive but not uploaded until WindEurope redistribution permission is verified |
+| Cost-to-industry mapping | `modules/mrio_analysis/helpers/Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Included public processed input |
+| Classifications and crosswalks | `modules/mrio_analysis/helpers/` | Included |
+| FIGARO 2024 prepared matrix | `modules/mrio_analysis/datasets/mrio/2024/MRIO_2024_CORE_ROW_ind_by_ind.parquet` | Included processed input |
+| FIGARO 2024 flatfile | External Eurostat/CIRCABC FIGARO 26ed release | Public external input; place the downloaded industry-by-industry flatfile under `modules/mrio_analysis/datasets/mrio/2024/` when rebuilding the prepared matrix |
+| Employment sources | Eurostat, ILOSTAT, and bounded OECD candidates | Obtain through the documented public downloads/APIs; local downloads and caches are ignored because source terms and responses can change |
+| Raw TGS 4C Offshore supplier-contract files | Local restricted source material | Not redistributed; the public notebook uses processed B1/B2 workbooks |
 
-## Reproducibility boundary
+The restricted raw files and the unverified B1/B2 processed workbooks are not silently substituted with synthetic data. A fresh clone can validate the code structure and rebuild the MRIO/employment pieces, but a complete scenario run requires the locally retained B1/B2 workbooks or approved replacement inputs. Exact rebuilding of every derived employment and scenario artifact may also require external data access and the locally retained runtime caches.
 
-The archive supports execution of the documented public workflow from processed
-B1/B2/C1 inputs. Exact byte-for-byte regeneration of the historical employment
-and scenario outputs is not claimed from a bare clone, because external source
-releases/API responses and excluded runtime caches are not versioned here.
-The verified C2 and D output workbooks, figures, and tables are retained in
-this repository; their runtime caches are not staged. Never substitute a newly
-recomputed cache for an archived manuscript output without a documented
-comparison.
+## Outputs and Git policy
+
+The notebook writes generated artifacts below `results/images/`, `results/tables/`, and `results/supplementary/`. Scenario, MRIO, employment, and source-audit caches are also generated locally. These paths are ignored and are not part of the clean GitHub publication. The complete local publication copy and its backup retain the validated figures, tables, workbooks, and caches for reference.
+
+The notebook committed to GitHub is code-only: execution outputs and embedded figures are cleared before publication. Run it in a disposable or ignored output tree when validating a clone so that archived local results are not overwritten.
+
+## Validation and limitations
+
+The rounded manuscript reference values are approximately:
+
+- global GVA: EUR 6.6 billion;
+- global employment: 90,000 FTE-years;
+- EU27 capture: 71% of GVA and 41% of employment;
+- full reshoring: +8% EU27 GVA, +3,300 FTE-years, and +1.3% project expenditure;
+- full offshoring: −39% EU27 GVA, −16,000 FTE-years, and −6.2% project expenditure;
+- turbine reshoring procurement increase: EUR 76 million;
+- balance-of-plant reshoring procurement increase: EUR 10 million.
+
+These are rounded reporting values. Validation compares the actual local results with numerical tolerances and does not alter economic assumptions to force rounded agreement. Exact byte-for-byte reproduction is not claimed when external datasets, API responses, or excluded runtime caches differ from the validated local archive.

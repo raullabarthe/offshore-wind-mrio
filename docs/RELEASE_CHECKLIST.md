@@ -23,8 +23,9 @@ approval.
 
 - Base: `main`
 - Compare branch: `paper/energy-economics`
-- Purpose: replace the outdated Energy Policy/Tier-1 snapshot with the audited
-  current Energy Economics submission workflow, processed public inputs,
+- Purpose: replace the previous Tier-1 snapshot with the audited
+  current **Made in Europe for offshore wind? Value added, employment, and cost
+  trade-offs** workflow and reproducibility documentation,
   reproducibility documentation, and safe ignore rules.
 - Do not open or publish the pull request until the staged diff, restricted-data
   audit, and coauthor review are approved.
