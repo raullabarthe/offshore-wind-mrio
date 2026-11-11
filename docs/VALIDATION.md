@@ -1,6 +1,6 @@
 # Validation record
 
-**Manuscript:** What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs. The results and checks below are historical reporting audits, not newly executed model runs.
+**Manuscript:** Made in Europe for offshore wind? Value added, employment, and cost trade-offs. The results and checks below are historical reporting audits, not newly executed model runs.
 
 
 Validation is deliberately read-only with respect to the finalized source
@@ -31,8 +31,7 @@ benchmarks.
   `PROVENANCE.md`.
 - The included MRIO cache loads as the 2024 industry-by-industry core/ROW
   matrix without rebuilding a flatfile.
-- `.gitignore` excludes generated caches, external raw flatfiles, and known
-  restricted input names.
+- `.gitignore` excludes generated caches, external raw flatfiles, and raw local source files.
 
 Results of the checks performed on this archive are added after the commands
 are run. A full scenario execution is intentionally out of scope: it could
@@ -59,8 +58,7 @@ regenerate caches and requires external employment sources.
 - Complete-results transfer: all source `results/` files, including final C2
   and D workbooks, remain in the complete local publication archive; they are
   ignored and are not part of the clean GitHub staging set.
-- Ignore checks: generated scenario cache paths, the known restricted raw B1
-  supplier file, full FIGARO flatfile paths, and generated result paths are
+- Ignore checks: generated scenario cache paths, local source files, full FIGARO flatfile paths, and generated result paths are
   ignored. Final figures, tables, and C2/D publication outputs remain local
   and are intentionally not staged.
 

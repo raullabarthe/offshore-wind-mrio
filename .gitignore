@@ -36,7 +36,7 @@ modules/supply_chain/sources/**/~$*.xlsx
 # Historical notebooks and local archives.
 old/
 
-# Restricted raw supplier-contract files. Do not publish unless redistribution rights are confirmed.
+# Local raw source and intermediate files not used by the processed-input workflow.
 modules/supply_chain/sources/wind_farm/4COffshore_suppliers.xlsx
 modules/supply_chain/sources/wind_farm/4COffshore_windfarms.xlsx
 modules/supply_chain/sources/wind_farm/4COffshore_manual.xlsx

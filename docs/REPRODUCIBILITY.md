@@ -25,20 +25,19 @@ Run the notebook cells in order. The workflow:
 10. runs the central `mu = 0.30` case, the main sensitivity range, and the complete delta scenario calculations; and
 11. writes figures, tables, and supplementary workbooks to `results/` when the notebook export settings are enabled.
 
-## Inputs and provenance
+## Model inputs
 
 | Input class | Repository location or source | Reproduction status |
 | --- | --- | --- |
-| Processed wind-farm sourcing | `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Included processed model input; raw TGS 4C Offshore files are not included |
-| Processed turbine sourcing | `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Included processed model input; raw WindEurope/source databases are not included |
-| Cost-to-industry mapping | `modules/mrio_analysis/helpers/Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Included public processed input |
+| Processed wind-farm sourcing | `modules/supply_chain/sources/wind_farm/Supplementary_Material_B1_Suppliers_Processing_Wind_Farm_4COffshore.xlsx` | Included |
+| Processed turbine sourcing | `modules/supply_chain/sources/turbine/Supplementary_Material_B2_Turbine_Supply_Chain_Sourcing_Inputs.xlsx` | Included |
+| Cost-to-industry mapping | `modules/mrio_analysis/helpers/Supplementary_Material_C1_NACE2_Cost_Mapping.xlsx` | Included |
 | Classifications and crosswalks | `modules/mrio_analysis/helpers/` | Included |
 | FIGARO 2024 prepared matrix | `modules/mrio_analysis/datasets/mrio/2024/MRIO_2024_CORE_ROW_ind_by_ind.parquet` | Included processed input |
-| FIGARO 2024 flatfile | External Eurostat/CIRCABC FIGARO 26ed release | Public external input; place the downloaded industry-by-industry flatfile under `modules/mrio_analysis/datasets/mrio/2024/` when rebuilding the prepared matrix |
+| FIGARO 2024 flatfile | External Eurostat/CIRCABC FIGARO 26ed release | External input for rebuilding; place the downloaded industry-by-industry flatfile under `modules/mrio_analysis/datasets/mrio/2024/` when rebuilding the prepared matrix |
 | Employment sources | Eurostat, ILOSTAT, and bounded OECD candidates | Obtain through the documented public downloads/APIs; local downloads and caches are ignored because source terms and responses can change |
-| Raw TGS 4C Offshore supplier-contract files | Local restricted source material | Not redistributed; the public notebook uses processed B1/B2 workbooks |
 
-The restricted raw files are not redistributed, but the author-processed B1/B2 workbooks required by the notebook are included. A fresh clone can therefore execute the sourcing stage from the published processed inputs. Exact rebuilding of every derived employment and scenario artifact may still require external data access; runtime caches remain excluded and are rebuilt locally when absent. Any third-party licensing or attribution conditions for the processed B1/B2 derivatives remain documented separately in `docs/DATA_LICENSE_AUDIT.md` and are not represented here as legally cleared.
+B1, B2, and C1 are included in the repository and loaded by the public notebook. Rebuilding employment coefficients may require downloading data from the documented external sources. Runtime caches are regenerated locally and are not tracked.
 
 ## Outputs and Git policy
 
