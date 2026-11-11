@@ -13,7 +13,7 @@ for the original working directory.
 | --- | --- | --- |
 | Workflow | `main.ipynb` and all current `modules/**/*.py` | Ordered paper execution and its implementation |
 | Cost inputs | Exchange-rate XML files | Required by cost-model initialization |
-| Sourcing | Processed B1 and B2 workbooks in the local publication archive | Required by the notebook, but excluded from GitHub until redistribution permissions are verified |
+| Sourcing | Processed B1 and B2 workbooks | Required version-controlled model inputs; raw third-party source databases remain excluded |
 | Classification | C1 workbook, classification CSVs, and metadata XML | Required by industrial mapping and FIGARO parsing |
 | MRIO | Prepared 2024 industry-by-industry core/ROW FIGARO matrix | Default cache-first matrix consumed by the notebook |
 | Publication results | `results/images/`, `results/tables/`, and final C2/D workbooks in `results/supplementary/` | Final scientific outputs retained with source-relative paths but excluded from GitHub |
