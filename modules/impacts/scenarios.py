@@ -2401,7 +2401,7 @@ def _cache_pricing_model_matches(
     scenarios_delta: dict,
     requested_deltas: tuple[int, ...],
 ) -> bool:
-    """Require explicit provenance for the corrected bidirectional pricing."""
+    """Require explicit provenance for bidirectional supplier pricing."""
     for delta in requested_deltas:
         scenario = scenarios_delta.get(delta)
         if scenario is None:
