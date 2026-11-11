@@ -9,8 +9,9 @@
 
 ## Summary
 
-This pull request updates the repository from the earlier Energy Policy/Tier-1
-snapshot to the current Energy Economics submission workflow. It adds the
+This pull request updates the repository from the earlier Tier-1 snapshot to
+the current **Made in Europe for offshore wind? Value added, employment, and
+cost trade-offs** workflow. It adds the
 current modules and notebook, processed public B1/B2/C1 inputs, the prepared
 2024 FIGARO core matrix, final figures/tables/C2/D results, project-relative
 configuration, and publication-facing documentation. It removes the obsolete

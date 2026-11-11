@@ -1,65 +1,69 @@
-# Made in Europe for offshore wind? Value added, employment, and cost trade-offs
+# Made in Europe for offshore wind?
 
-Computational research repository accompanying the preprint/submission-stage manuscript by **Raúl Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou** (DTU Wind and Energy Systems). No journal acceptance, software release, or DOI is claimed.
+Computational model accompanying the manuscript **“Made in Europe for offshore wind? Value added, employment, and cost trade-offs”** by Raul Labarthe, Ulrich Elmer Hansen, and Anastasia Ioannou (Technical University of Denmark), prepared for submission to *Energy Economics*.
 
-## Scope and research question
+## Purpose and scope
 
-The research asks where offshore-wind procurement generates **gross value added (GVA) and employment** across global value chains; how much the EU27 captures beyond Tier-1 sourcing; and the economic and procurement-cost consequences of shifting manufacturing sourcing between EU27 and non-EU27 countries. It evaluates economic capture and exposure to offshoring as distinct industrial-policy objectives, rather than attempting to rank legal auction rules.
+The model links offshore-wind farm cost and component sourcing allocations to a FIGARO 2024 industry-by-industry multiregional input-output (MRIO) framework. It estimates global and EU27 value added, employment, and procurement-cost effects for a representative 1 GW offshore wind farm under baseline, reshoring, offshoring, and component-level sourcing scenarios.
 
-The model combines an engineering-based lifetime cost model for a **1 GW fixed-bottom offshore wind farm (100 × 10 MW turbines; 25-year lifetime)**, component/subcomponent sourcing estimates, the **FIGARO 2024 MRIO** framework, and country-industry GVA and employment coefficients. A representative EU27 sourcing profile is capacity-weighted using Belgium, Denmark, Germany and the Netherlands; the UK is a reference market but is excluded from these EU27 weights.
+The implementation covers:
 
-The baseline includes **Devex, Turbine, BoP, Installation and O&M**. Only **Turbine and balance of plant (BoP)** procurement is reallocated in the counterfactuals. The parameter `delta` (`δ`) shifts the **EU27 share of inferred equivalent production quantities**, in percentage points, between EU27 and non-EU27 suppliers; it is *not* a direct percentage change in spending. Supplier price differences are represented by `mu` (`μ`), with **0.3** as the central assumption and a sensitivity analysis. Reallocation uses baseline country GVA weights and donor-quantity constraints. These are hypothetical static sourcing reallocations.
+- offshore-wind farm cost, component, and subcomponent allocations;
+- turbine and balance-of-plant sourcing scenarios;
+- FIGARO 2024 MRIO integration with corrected input-output normalization (`A_ij = Z_ij / X_j`);
+- baseline GVA and employment calculations using Eurostat and ILOSTAT sources, including an ILOSTAT World anchor and World-minus-FIGARO residual ROW treatment;
+- supplier price assumptions, the finalized lower-cost supplier classification, and the central `mu = 0.30` sensitivity with its delta scenarios;
+- generation of manuscript figures, tables, and supplementary workbooks.
 
-## Main manuscript findings
+## Repository layout
 
-| Measure | Rounded manuscript result |
-| --- | ---: |
-| Global GVA over the project lifetime | EUR 6.6 billion |
-| Global employment supported | 90,000 FTE-years |
-| EU27 share of global GVA | 71% |
-| EU27 share of global employment | 41% |
-| Full reshoring: change in EU27 GVA / employment | +8% / +9% |
-| Full reshoring: change in project expenditure | +1.5% |
-| Full offshoring: change in EU27 GVA / employment | −39% / −42% |
-| Full offshoring: change in expenditure | approximately −6.7% |
+```text
+main.ipynb                         Executable end-to-end workflow
+modules/config.py                  Project-relative paths and run settings
+modules/cost_model/                Offshore-wind cost model
+modules/supply_chain/              Supplier and sourcing allocations
+modules/mrio_analysis/             FIGARO, employment, and industrial analysis
+modules/impacts/                   Scenario, table, and figure calculations
+docs/                              Reproducibility and data documentation
+requirements.txt                   Python dependencies
+setup_env.ps1                      Windows environment setup helper
+```
 
-The EU27 captures a larger fraction of GVA than of employment because global upstream production and labor intensities differ across countries. Existing EU27 procurement limits additional reshoring potential but creates substantial exposure to displacement through offshoring. Procurement savings are **not** welfare estimates; cumulative FTE-years are **not permanent jobs or net employment creation**.
+Generated figures, tables, supplementary workbooks, and runtime caches are intentionally excluded from GitHub. They remain in the complete local publication archive and can be regenerated by the notebook.
 
-These are rounded manuscript reporting values, not new computations. See [docs/VALIDATION.md](docs/VALIDATION.md) for archived checks and their limits.
+## Setup and execution
 
-## Code and outputs
+The supported environment is Python **3.13**, recorded in `.python-version`.
 
-| Path | Description |
-| --- | --- |
-| `main.ipynb` | Ordered paper computational workflow |
-| `modules/config.py` | Project-relative paths and run options |
-| `modules/cost_model/` | Engineering cost model |
-| `modules/supply_chain/` | Country, OEM and component-level sourcing |
-| `modules/mrio_analysis/` | FIGARO, industry mapping and employment methods |
-| `modules/impacts/` | Economic impacts, sourcing scenarios and exporters |
-| `results/images/` | Manuscript and supplementary figures |
-| `results/tables/` | LaTeX manuscript tables |
-| `results/supplementary/` | C2 employment audit and D detailed-results workbooks |
-| `docs/` | Provenance, reproduction, validation, and release decisions |
-
-Processed B1 wind-farm sourcing and B2 turbine sourcing inputs are under `modules/supply_chain/sources/`. The processed C1 cost-to-industry mapping is under `modules/mrio_analysis/helpers/`, alongside the prepared FIGARO 2024 matrix in `modules/mrio_analysis/datasets/mrio/2024/`. Raw TGS 4C Offshore supplier contracts are excluded. Full FIGARO source data and some Eurostat, ILOSTAT and OECD datasets must be accessed externally if their derived artifacts are rebuilt.
-
-## Running the research workflow
-
-With Python 3.10 or later, on Windows PowerShell:
+On Windows:
 
 ```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\setup_env.ps1
+```
+
+Or install manually:
+
+```bash
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.venv\Scripts\activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 jupyter lab main.ipynb
 ```
 
-Run the notebook in order. The prepared matrix and public processed sourcing inputs are included, but runtime employment and scenario caches are **not** tracked. Regeneration may depend on external datasets and takes substantial computation; exact byte-for-byte reproduction of historical runs from a fresh clone is not claimed. Review [the reproducibility guide](docs/REPRODUCIBILITY.md) before regenerating outputs.
+The notebook uses paths derived from `modules/config.py`, so it must be run from a clone of this repository or opened with the repository as the working directory. It does not rely on the original Windows project path.
 
-See [SUPPLEMENTARY_MATERIALS.md](SUPPLEMENTARY_MATERIALS.md) for the asset map and filenames. Historical local workbook names may differ from tracked names; verify contents before treating them as interchangeable.
+## Inputs and restrictions
 
-## Citation, rights, and status
+The repository includes the classifications, exchange-rate inputs, employment-source adapters, and the prepared FIGARO 2024 core/ROW matrix needed for the documented public workflow. Local employment downloads are obtained through the documented public sources and are ignored. The processed B1 and B2 workbooks remain in the complete local publication archive but are not uploaded because redistribution permission for their TGS 4C Offshore and WindEurope-derived content has not been verified. Their required sheets and placement are documented in [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).
 
-Use [CITATION.cff](CITATION.cff) for the manuscript and software citation metadata. The repository is **already public**, following the merge of PR #1 into `main` on November 6, 2026. This does **not** mean a formal versioned GitHub/Zenodo release exists or that third-party data redistribution rights have been fully cleared. There is currently no repository-wide open-source license; do not assume permission to relicense processed third-party content. See [the data-rights audit](docs/DATA_LICENSE_AUDIT.md) and [release checklist](docs/RELEASE_CHECKLIST.md).
+Raw TGS 4C Offshore supplier-contract files and other restricted raw allocation sheets are not redistributed. The public workflow uses the processed supplementary inputs instead. Do not replace a restricted input with synthetic data and assume that this demonstrates exact reproduction; document the limitation and obtain the source through its permitted acquisition route.
+
+## Validation reference
+
+The validated local results used as the comparison reference are approximately EUR 6.6 billion global GVA, 90,000 global FTE-years, 71% EU27 GVA capture, and 41% EU27 employment capture. Full reshoring is approximately +8% EU27 GVA, +3,300 FTE-years, and +1.3% project expenditure; full offshoring is approximately −39% EU27 GVA, −16,000 FTE-years, and −6.2% project expenditure. These are rounded reporting values, not hard-coded targets. See [docs/VALIDATION.md](docs/VALIDATION.md) for the validation record and limitations.
+
+## Citation and license
+
+Use `CITATION.cff` for citation metadata. No manuscript acceptance, software DOI, GitHub release, or Zenodo publication is implied by this repository. A license should be selected and recorded before a public software release if the authors require one.

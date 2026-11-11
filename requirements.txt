@@ -1,5 +1,6 @@
 cartopy
-jupyterlab
+ipykernel>=6.29
+jupyterlab>=4.4
 matplotlib
 numpy
 openpyxl>=3.1.5

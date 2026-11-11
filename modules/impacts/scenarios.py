@@ -4440,7 +4440,7 @@ def _plot_counterfactual_regional_total(
         value = float(value)
         if abs(value) >= 1000.0:
             scaled = value / 1000.0
-            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}k".rstrip("0").rstrip(".")
+            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}".rstrip("0").rstrip(".") + "k"
         return f"{value:.0f}"
     ax.yaxis.set_major_formatter(FuncFormatter(fmt_axis))
     ax.tick_params(axis="y", labelsize=ytick_font)
@@ -4602,7 +4602,7 @@ def plot_and_save_eu27_counterfactual_figures(
         value = float(value)
         if abs(value) >= 1000.0:
             scaled = value / 1000.0
-            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}k".rstrip("0").rstrip(".")
+            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}".rstrip("0").rstrip(".") + "k"
         return f"{value:.0f}"
 
     region_handles = []
@@ -6252,6 +6252,37 @@ def _eu27_sourcing_component_cost(
     )
 
 
+def _eu27_sourcing_project_cost(
+    scenario_delta,
+    *,
+    deployment="EU27_AVG",
+    markup: float = REFERENCE_MARKUP,
+    low_income=None,
+    reference_markup: float = REFERENCE_MARKUP,
+):
+    """Return the full saved project procurement cost for one deployment."""
+    cost_df = _eu27_sourcing_field(scenario_delta, "final_cost_df_cf")
+    if not isinstance(cost_df, pd.DataFrame):
+        raise TypeError("Each saved scenario must contain final_cost_df_cf as a DataFrame.")
+    required = {"deployment_country", "value_alloc"}
+    missing = sorted(required.difference(cost_df.columns))
+    if missing:
+        raise KeyError(f"final_cost_df_cf is missing required columns: {missing}")
+    mask = cost_df["deployment_country"].astype("string").str.strip().eq(str(deployment))
+    if not mask.any():
+        raise KeyError(f"No saved procurement rows for deployment={deployment!r}.")
+    values = pd.to_numeric(cost_df.loc[mask, "value_alloc"], errors="raise").to_numpy(dtype=float)
+    if not np.isfinite(values).all():
+        raise ValueError("Non-finite procurement values found in the full project cost.")
+    return _reference_price_cost_from_df(
+        cost_df,
+        markup=markup,
+        low_income=low_income,
+        reference_markup=reference_markup,
+        mask=mask,
+    )
+
+
 def _eu27_sourcing_result_component(result, component):
     levels = _eu27_sourcing_field(result, "results_by_origin_lvl")
     sublevels = _eu27_sourcing_field(result, "results_by_origin_sub_lvl")
@@ -6298,6 +6329,36 @@ def _eu27_sourcing_impact(result, component, indicator, *, deployment="EU27_AVG"
     values = pd.to_numeric(frame.loc[mask, value_col], errors="raise").to_numpy(dtype=float)
     if not np.isfinite(values).all():
         raise ValueError(f"Non-finite {value_col} values found for component {component!r}.")
+    return float(values.sum())
+
+
+def _eu27_sourcing_project_impact(result, indicator, *, deployment="EU27_AVG"):
+    """Return the saved full-project EU27 impact for one indicator."""
+    indicator = str(indicator).strip().upper()
+    value_col = {"GVA": "GVA_Total", "JOBS": "Jobs_Total"}.get(indicator)
+    if value_col is None:
+        raise ValueError("indicator must be 'GVA' or 'Jobs'.")
+    levels = _eu27_sourcing_field(result, "results_by_origin_lvl")
+    if isinstance(levels, dict):
+        level_zero = levels.get(0)
+    elif isinstance(levels, (list, tuple)) and levels:
+        level_zero = levels[0]
+    else:
+        level_zero = None
+    frame = level_zero.get("Total") if isinstance(level_zero, dict) else None
+    if not isinstance(frame, pd.DataFrame):
+        raise KeyError("Saved MRIO results lack the full-project Total table.")
+    required = {"Deployment", "Country", value_col}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise KeyError(f"Saved full-project results are missing columns: {missing}")
+    mask = frame["Deployment"].astype("string").str.strip().eq(str(deployment))
+    mask &= frame["Country"].astype("string").str.strip().str.upper().isin(set(EU27))
+    if not mask.any():
+        raise KeyError(f"No EU27 full-project impact rows for deployment={deployment!r}.")
+    values = pd.to_numeric(frame.loc[mask, value_col], errors="raise").to_numpy(dtype=float)
+    if not np.isfinite(values).all():
+        raise ValueError(f"Non-finite full-project {value_col} values found.")
     return float(values.sum())
 
 
@@ -6485,6 +6546,239 @@ def plot_eu27_component_strategic_quadrant(
     return fig, ax, path
 
 
+def _eu27_tradeoff_normalization_scope(value) -> str:
+    """Validate the Figure 3.5 normalization mode."""
+    scope = "absolute" if value is None else str(value).strip().lower()
+    if scope not in {"absolute", "category", "project"}:
+        raise ValueError("normalization_scope must be 'absolute', 'category', or 'project'.")
+    return scope
+
+
+def plot_eu27_aggregate_cost_impact_curves(
+    data: pd.DataFrame,
+    *,
+    indicator: str,
+    filename: str,
+    baseline_markup: float,
+    axis_limits: dict[str, tuple[float, float]],
+    normalization_scope: str | None = "project",
+    annualize: bool | None = None,
+    save: bool | None = None,
+    close: bool | None = None,
+):
+    """Plot aggregate Turbine, BoP, and Total project trade-off curves."""
+    from matplotlib.collections import PolyCollection
+    from matplotlib.lines import Line2D
+
+    scope = _eu27_tradeoff_normalization_scope(normalization_scope)
+    if scope != "absolute":
+        data = _normalize_eu27_tradeoff_data(data, normalization_scope=scope)
+    indicator_key = str(indicator).strip().upper()
+    if indicator_key not in {"GVA", "JOBS"}:
+        raise ValueError("indicator must be 'GVA' or 'Jobs'.")
+    series = ("Turbine", "BoP", "Total project")
+    if set(data["component_group"].astype(str).unique()) != set(series):
+        raise ValueError(f"Aggregate plot must contain exactly these series: {series}.")
+    if annualize is None:
+        annualize = bool(data["annualize"].astype(bool).iloc[0])
+    if data["annualize"].astype(bool).nunique() != 1 or bool(data["annualize"].iloc[0]) != bool(annualize):
+        raise ValueError("Requested annualization does not match the saved aggregate data.")
+    if indicator_key == "JOBS" and bool(annualize):
+        raise ValueError("These manuscript employment curves report cumulative FTE-years.")
+
+    markups = sorted(pd.to_numeric(data["markup"], errors="raise").unique().tolist())
+    if (
+        len(markups) != 3
+        or not np.isclose(markups[1], float(baseline_markup), rtol=0.0, atol=1e-12)
+    ):
+        raise ValueError(
+            "Curves must contain low, configured central, and high markup cases, "
+            f"with central markup {baseline_markup:g}."
+        )
+    low_markup, _central_markup, high_markup = markups
+    baseline_costs = {}
+    for aggregate in series:
+        aggregate_rows = data.loc[
+            data["component_group"].astype(str).eq(aggregate)
+            & np.isclose(data["markup"].astype(float), float(baseline_markup), rtol=0.0, atol=1e-12)
+        ]
+        if aggregate_rows.empty or aggregate_rows["baseline_expenditure_eur"].nunique(dropna=False) != 1:
+            raise ValueError(f"{aggregate}: expected one positive baseline expenditure.")
+        cost = float(aggregate_rows["baseline_expenditure_eur"].iloc[0])
+        if not np.isfinite(cost) or cost <= 0.0:
+            raise ValueError(f"{aggregate}: invalid baseline expenditure.")
+        baseline_costs[aggregate] = cost
+
+    x_col = "cost_change_million_eur"
+    y_col = "gva_change_million_eur" if indicator_key == "GVA" else "employment_change"
+    if scope == "absolute":
+        x_label = r"\boldmath$\Delta\,\mathrm{Procurement\ cost}\;[\mathrm{million\ EUR}]$"
+        if indicator_key == "GVA":
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ GVA}\;[\mathrm{million\ EUR}]$"
+        else:
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ employment}\;[\mathrm{FTE\text{-}years}]$"
+    else:
+        x_label = r"\boldmath$\Delta\,\mathrm{Procurement\ cost}\;[\%\ \mathrm{var}]$"
+        if indicator_key == "GVA":
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ GVA}\;[\%\ \mathrm{var}]$"
+        else:
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ employment}\;[\%\ \mathrm{var}]$"
+
+    if not isinstance(axis_limits, dict) or set(axis_limits) != {"xlim", "ylim"}:
+        raise ValueError("axis_limits must contain the shared 'xlim' and 'ylim' tuples.")
+    validated_axis_limits = {}
+    for key in ("xlim", "ylim"):
+        bounds = tuple(float(value) for value in axis_limits[key])
+        if len(bounds) != 2 or not np.isfinite(bounds).all() or bounds[0] >= bounds[1]:
+            raise ValueError(f"Invalid shared {key}: {axis_limits[key]!r}.")
+        validated_axis_limits[key] = bounds
+
+    aggregate_colors = {
+        "Turbine": EU27_COMPONENT_SOURCING_COLORS["Drivetrain"],
+        "BoP": "#6543A1",
+        "Total project": "#41464D",
+    }
+    set_house_style()
+    fig, ax = plt.subplots(figsize=(4.35, 3.25), dpi=150)
+    curves = {}
+    plotted_values = []
+    for aggregate in series:
+        aggregate_rows = data.loc[data["component_group"].astype(str).eq(aggregate)]
+        curve = aggregate_rows.loc[
+            np.isclose(aggregate_rows["markup"].astype(float), float(baseline_markup), rtol=0.0, atol=1e-12)
+        ].sort_values("delta_pp")
+        low_curve = aggregate_rows.loc[
+            np.isclose(aggregate_rows["markup"].astype(float), low_markup, rtol=0.0, atol=1e-12)
+        ].sort_values("delta_pp")
+        high_curve = aggregate_rows.loc[
+            np.isclose(aggregate_rows["markup"].astype(float), high_markup, rtol=0.0, atol=1e-12)
+        ].sort_values("delta_pp")
+        expected_deltas = list(range(-100, 101, 5))
+        deltas = curve["delta_pp"].astype(int).tolist()
+        if deltas != expected_deltas or low_curve["delta_pp"].astype(int).tolist() != expected_deltas or high_curve["delta_pp"].astype(int).tolist() != expected_deltas:
+            raise ValueError(f"{aggregate}: expected the 41 saved delta observations from -100 to +100.")
+        x_values = curve[x_col].to_numpy(dtype=float)
+        y_values = curve[y_col].to_numpy(dtype=float)
+        low_values = low_curve[[x_col, y_col]].to_numpy(dtype=float)
+        high_values = high_curve[[x_col, y_col]].to_numpy(dtype=float)
+        values = np.column_stack([x_values, y_values])
+        if not np.isfinite(values).all() or not np.isfinite(low_values).all() or not np.isfinite(high_values).all():
+            raise ValueError(f"{aggregate}: trade-off coordinates are non-finite.")
+        zero_idx = deltas.index(0)
+        if not np.allclose(values[zero_idx], [0.0, 0.0], rtol=0.0, atol=1e-10):
+            raise AssertionError(f"{aggregate}: delta=0 must be exactly the origin.")
+        plotted_values.append(values)
+        curves[aggregate] = (deltas, x_values, y_values)
+        band_vertices = np.stack(
+            (low_values[:-1], low_values[1:], high_values[1:], high_values[:-1]),
+            axis=1,
+        )
+        ax.add_collection(PolyCollection(
+            band_vertices,
+            facecolors=[aggregate_colors[aggregate]],
+            edgecolors="none",
+            alpha=0.10,
+            label="_nolegend_",
+            zorder=2,
+        ))
+        ax.plot(
+            x_values, y_values,
+            color=aggregate_colors[aggregate],
+            linestyle="-", linewidth=1.15,
+            zorder=3,
+        )
+
+    plotted_values = np.vstack(plotted_values)
+    cost_min, cost_max = min(baseline_costs.values()), max(baseline_costs.values())
+    if np.isclose(cost_min, cost_max, rtol=0.0, atol=1e-12):
+        marker_area = {aggregate: 28.0 for aggregate in series}
+    else:
+        marker_area = {
+            aggregate: 12.0 + 34.0 * (baseline_costs[aggregate] - cost_min) / (cost_max - cost_min)
+            for aggregate in series
+        }
+    for aggregate in series:
+        deltas, x_values, y_values = curves[aggregate]
+        color = aggregate_colors[aggregate]
+        zero_idx = deltas.index(0)
+        baseline_xy = np.array([x_values[zero_idx], y_values[zero_idx]])
+        for delta, marker, face in ((-100, "o", "white"), (100, "^", color)):
+            endpoint_idx = deltas.index(delta)
+            endpoint_xy = np.array([x_values[endpoint_idx], y_values[endpoint_idx]])
+            if np.allclose(endpoint_xy, baseline_xy, rtol=0.0, atol=1e-10):
+                continue
+            ax.scatter(
+                endpoint_xy[0], endpoint_xy[1], s=marker_area[aggregate], marker=marker,
+                facecolors=face, edgecolors=color, linewidths=0.85, zorder=5,
+            )
+        ax.scatter(
+            baseline_xy[0], baseline_xy[1], s=10.0, marker="o",
+            facecolors=color, edgecolors=color, linewidths=0.5, zorder=6,
+        )
+
+    ax.axhline(0.0, color="#777777", linewidth=0.6, alpha=0.6, zorder=1)
+    ax.axvline(0.0, color="#777777", linewidth=0.6, alpha=0.6, zorder=1)
+    ax.set_xlabel(x_label, fontsize=9)
+    ax.set_ylabel(y_label, fontsize=8.5)
+    apply_house_style(ax, grid=True)
+    ax.grid(False, axis="y", which="minor")
+    if indicator_key == "GVA":
+        ax.grid(True, axis="y", which="major", linewidth=0.4, alpha=0.3)
+        ax.tick_params(axis="y", which="minor", length=0)
+    ax.tick_params(axis="both", labelsize=7.5)
+
+    def _format_tick(value, _position):
+        value = float(value)
+        if abs(value) < 1e-10:
+            return "0"
+        if abs(value) >= 100.0:
+            return f"{value:,.0f}"
+        return f"{value:,.1f}".rstrip("0").rstrip(".")
+
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(_format_tick))
+    def _format_y_tick(value, _position):
+        value = float(value)
+        if abs(value) >= 1000.0:
+            scaled = value / 1000.0
+            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}k".rstrip("0").rstrip(".")
+        return f"{value:.0f}"
+
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_y_tick))
+    aggregate_handles = [
+        Line2D(
+            [0], [0], color=aggregate_colors[aggregate], linewidth=1.2, label=aggregate,
+        )
+        for aggregate in series
+    ]
+    delta_handles = [
+        Line2D(
+            [0], [0], linestyle="none", marker=marker,
+            markerfacecolor=face, markeredgecolor="#444444", markeredgewidth=0.7,
+            markersize=4.2, label=label,
+        )
+        for marker, face, label in (
+            ("o", "white", r"$\delta=-100$"),
+            ("^", "#444444", r"$\delta=+100$"),
+        )
+    ]
+    ax.legend(
+        handles=aggregate_handles + delta_handles,
+        title=tex_bold("Aggregate"),
+        title_fontproperties={"family": "serif", "size": 6.6},
+        loc="lower right", bbox_to_anchor=(0.98, 0.02), bbox_transform=ax.transAxes,
+        ncol=1, frameon=True, fancybox=False, framealpha=0.94,
+        facecolor="white", edgecolor="#B8B8B8",
+        prop={"family": "serif", "size": 6.6},
+        handlelength=1.0, handletextpad=0.45, columnspacing=0.6,
+        labelspacing=0.22, borderpad=0.45, borderaxespad=0.0,
+    )
+    ax.set_xlim(*validated_axis_limits["xlim"])
+    ax.set_ylim(*validated_axis_limits["ylim"])
+    fig.subplots_adjust(left=0.145, right=0.99, bottom=0.13, top=0.985)
+    path = save_and_close(fig=fig, filename=filename, save=save, close=close, exact_size=True)
+    return fig, ax, path
+
+
 def build_eu27_component_tradeoff_curve_data(
     *,
     scenarios_delta_by_markup: dict,
@@ -6532,6 +6826,18 @@ def build_eu27_component_tradeoff_curve_data(
 
         baseline_delta = delta_lookup[0]
         baseline_result = result_lookup[0]
+        project_baseline_cost = _eu27_sourcing_project_cost(
+            baseline_delta,
+            markup=markup,
+            low_income=low_income,
+            reference_markup=reference_markup,
+        )
+        project_baseline_gva = _eu27_sourcing_project_impact(baseline_result, "GVA")
+        project_baseline_jobs = _eu27_sourcing_project_impact(baseline_result, "Jobs")
+        if project_baseline_cost <= 0.0:
+            raise ValueError(f"Full-project baseline expenditure is not positive for markup {markup:g}.")
+        if project_baseline_gva == 0.0 or project_baseline_jobs == 0.0:
+            raise ValueError(f"Full-project baseline impact is zero for markup {markup:g}.")
         for group, component, _subcomponent in EU27_COMPONENT_SOURCING_SPECS:
             base_cost = _eu27_sourcing_component_cost(
                 baseline_delta,
@@ -6569,6 +6875,9 @@ def build_eu27_component_tradeoff_curve_data(
                     "baseline_expenditure_eur": base_cost,
                     "baseline_gva_eur": base_gva,
                     "baseline_employment": base_jobs,
+                    "project_baseline_expenditure_eur": project_baseline_cost,
+                    "project_baseline_gva_eur": project_baseline_gva,
+                    "project_baseline_employment": project_baseline_jobs,
                     "cost_change_million_eur": float(cost_change),
                     "gva_change_million_eur": float(gva_change),
                     "employment_change": float(employment_change),
@@ -6588,16 +6897,147 @@ def build_eu27_component_tradeoff_curve_data(
     return data
 
 
-def _normalize_eu27_component_tradeoff_data(
+def build_eu27_aggregate_tradeoff_curve_data(
     data: pd.DataFrame,
     *,
-    baseline_markup: float,
+    scenarios_delta_by_markup: dict,
+    scenarios_result_by_markup: dict,
+    low_income=None,
+    reference_markup: float = REFERENCE_MARKUP,
 ) -> pd.DataFrame:
-    """Return a presentation-only copy normalized by central component cost."""
+    """Aggregate trade-offs, sourcing the project row from full saved scenarios."""
+    required = {
+        "markup", "delta_pp", "component_group", "component",
+        "baseline_expenditure_eur", "baseline_gva_eur", "baseline_employment",
+        "cost_change_million_eur", "gva_change_million_eur", "employment_change",
+        "annualize", "employment_unit",
+    }
+    missing = sorted(required.difference(data.columns))
+    if missing:
+        raise KeyError(f"Component trade-off data are missing aggregation columns: {missing}")
+    expected_components = {row[1] for row in EU27_COMPONENT_SOURCING_SPECS}
+    if set(data["component"].astype(str).unique()) != expected_components:
+        raise ValueError("Aggregation requires exactly the ten saved component observations.")
+    if set(data["component_group"].astype(str).unique()) != {"Turbine", "BoP"}:
+        raise ValueError("Aggregation requires both Turbine and BoP component groups.")
+
+    value_columns = (
+        "baseline_expenditure_eur", "baseline_gva_eur", "baseline_employment",
+        "cost_change_million_eur", "gva_change_million_eur", "employment_change",
+    )
+    rows = []
+    group_order = ("Turbine", "BoP", "Total project")
+    if not isinstance(scenarios_delta_by_markup, dict) or not isinstance(scenarios_result_by_markup, dict):
+        raise TypeError("Full-project aggregate sourcing requires scenario mappings.")
+    normalized_delta = {float(key): value for key, value in scenarios_delta_by_markup.items()}
+    normalized_result = {float(key): value for key, value in scenarios_result_by_markup.items()}
+    for (markup, delta), observations in data.groupby(
+        ["markup", "delta_pp"], sort=True, dropna=False
+    ):
+        observations = observations.copy()
+        if len(observations) != len(expected_components) or set(observations["component"].astype(str)) != expected_components:
+            raise ValueError(f"Markup {markup:g}, delta {int(delta)} lacks the complete component set.")
+        if markup not in normalized_delta or markup not in normalized_result:
+            raise KeyError(f"Missing full-project scenario mapping for markup {markup:g}.")
+        delta_mapping = normalized_delta[markup]
+        result_mapping = normalized_result[markup]
+        if not isinstance(delta_mapping, dict) or not isinstance(result_mapping, dict):
+            raise TypeError(f"Saved markup {markup:g} must contain delta mappings.")
+        if int(delta) not in delta_mapping or int(delta) not in result_mapping or 0 not in delta_mapping or 0 not in result_mapping:
+            raise KeyError(f"Full-project scenario mappings for markup {markup:g} must contain delta={int(delta)} and delta=0.")
+        baseline_delta = delta_mapping[0]
+        baseline_result = result_mapping[0]
+        baseline_cost = _eu27_sourcing_project_cost(
+            baseline_delta,
+            markup=markup,
+            low_income=low_income,
+            reference_markup=reference_markup,
+        )
+        baseline_gva = _eu27_sourcing_project_impact(baseline_result, "GVA")
+        baseline_jobs = _eu27_sourcing_project_impact(baseline_result, "Jobs")
+        current_cost = _eu27_sourcing_project_cost(
+            delta_mapping[int(delta)],
+            markup=markup,
+            low_income=low_income,
+            reference_markup=reference_markup,
+        )
+        current_gva = _eu27_sourcing_project_impact(result_mapping[int(delta)], "GVA")
+        current_jobs = _eu27_sourcing_project_impact(result_mapping[int(delta)], "Jobs")
+        project_values = {
+            "baseline_expenditure_eur": float(baseline_cost),
+            "baseline_gva_eur": float(baseline_gva),
+            "baseline_employment": float(baseline_jobs),
+            "cost_change_million_eur": 0.0 if int(delta) == 0 else float((current_cost - baseline_cost) / 1_000_000.0),
+            "gva_change_million_eur": 0.0 if int(delta) == 0 else float((current_gva - baseline_gva) / 1_000_000.0),
+            "employment_change": 0.0 if int(delta) == 0 else float(current_jobs - baseline_jobs),
+        }
+        for column in ("cost_change_million_eur", "gva_change_million_eur", "employment_change"):
+            component_sum = float(pd.to_numeric(observations[column], errors="raise").sum())
+            if not np.isclose(
+                project_values[column], component_sum,
+                rtol=1e-9, atol=1e-6,
+            ):
+                raise ValueError(
+                    f"Full-project {column} does not reconcile to Turbine + BoP "
+                    f"for markup={markup:g}, delta={int(delta)}."
+                )
+        for group in group_order:
+            selected = (
+                observations
+                if group == "Total project"
+                else observations.loc[observations["component_group"].astype(str).eq(group)]
+            )
+            if selected.empty:
+                raise ValueError(f"No observations available for aggregate {group!r}.")
+            annualize_values = selected["annualize"].astype(bool).unique()
+            employment_units = selected["employment_unit"].astype(str).unique()
+            if len(annualize_values) != 1 or len(employment_units) != 1:
+                raise ValueError(f"Aggregate {group!r} has inconsistent employment metadata.")
+            row = {
+                "markup": float(markup),
+                "delta_pp": int(delta),
+                "component_group": group,
+                "component": group,
+                "annualize": bool(annualize_values[0]),
+                "employment_unit": employment_units[0],
+                "project_baseline_expenditure_eur": float(project_values["baseline_expenditure_eur"]),
+                "project_baseline_gva_eur": float(project_values["baseline_gva_eur"]),
+                "project_baseline_employment": float(project_values["baseline_employment"]),
+            }
+            for column in value_columns:
+                values = pd.to_numeric(selected[column], errors="raise")
+                if not np.isfinite(values.to_numpy(dtype=float)).all():
+                    raise ValueError(f"Aggregate {group!r} contains non-finite {column} values.")
+                row[column] = (
+                    float(project_values[column])
+                    if group == "Total project"
+                    else float(values.sum())
+                )
+            rows.append(row)
+
+    aggregate = pd.DataFrame(rows)
+    expected_rows = data[["markup", "delta_pp"]].drop_duplicates().shape[0] * len(group_order)
+    if len(aggregate) != expected_rows:
+        raise ValueError("Aggregate trade-off observations are incomplete.")
+    baseline = aggregate.loc[aggregate["delta_pp"].eq(0)]
+    if not (baseline[["cost_change_million_eur", "gva_change_million_eur", "employment_change"]] == 0.0).all().all():
+        raise AssertionError("Every aggregate path must begin exactly at (0, 0).")
+    return aggregate
+
+
+def _normalize_eu27_tradeoff_data(
+    data: pd.DataFrame,
+    *,
+    normalization_scope: str,
+) -> pd.DataFrame:
+    """Return a presentation-only copy expressed as category/project percentages."""
     required = {
         "markup",
+        "delta_pp",
         "component",
         "baseline_expenditure_eur",
+        "baseline_gva_eur",
+        "baseline_employment",
         "cost_change_million_eur",
         "gva_change_million_eur",
         "employment_change",
@@ -6606,40 +7046,79 @@ def _normalize_eu27_component_tradeoff_data(
     if missing:
         raise KeyError(f"Trade-off data are missing normalization columns: {missing}")
 
-    central_mask = np.isclose(
-        pd.to_numeric(data["markup"], errors="raise"),
-        float(baseline_markup),
-        rtol=0.0,
-        atol=1e-12,
-    )
-    central = data.loc[central_mask]
-    baseline_costs = {}
-    for component, rows in central.groupby(central["component"].astype(str)):
-        costs = pd.to_numeric(rows["baseline_expenditure_eur"], errors="raise")
-        if costs.empty or costs.nunique(dropna=False) != 1:
-            raise ValueError(
-                f"{component}: central baseline expenditure must be unique for normalization."
+    scope = str(normalization_scope).strip().lower()
+    if scope not in {"category", "project"}:
+        raise ValueError("normalization_scope must be 'category' or 'project'.")
+    if scope == "project":
+        project_baseline_columns = [
+            "project_baseline_expenditure_eur",
+            "project_baseline_gva_eur",
+            "project_baseline_employment",
+        ]
+        missing_project = sorted(set(project_baseline_columns).difference(data.columns))
+        if missing_project:
+            raise KeyError(
+                "Project-normalized trade-off data are missing full-project baseline columns: "
+                f"{missing_project}"
             )
-        cost = float(costs.iloc[0])
-        if not np.isfinite(cost) or cost <= 0.0:
-            raise ValueError(f"{component}: invalid central baseline expenditure for normalization.")
-        baseline_costs[component] = cost
 
     out = data.copy()
-    denominators = out["component"].astype(str).map(baseline_costs)
-    if denominators.isna().any():
-        missing_components = sorted(out.loc[denominators.isna(), "component"].astype(str).unique())
-        raise ValueError(
-            "Missing central baseline expenditure for components: "
-            f"{missing_components}"
+    baseline_rows = out.loc[
+        np.isclose(out["delta_pp"].astype(float), 0.0, rtol=0.0, atol=1e-12)
+    ].copy()
+    if baseline_rows.empty:
+        raise ValueError("Trade-off data must contain delta=0 baseline rows for normalization.")
+
+    baseline_columns = ["baseline_expenditure_eur", "baseline_gva_eur", "baseline_employment"]
+    if scope == "category":
+        baseline_rows["_normalization_key"] = list(
+            zip(baseline_rows["markup"].astype(float), baseline_rows["component_group"].astype(str))
         )
-    denominator_million = denominators.astype(float) / 1_000_000.0
-    for column in (
-        "cost_change_million_eur",
-        "gva_change_million_eur",
-        "employment_change",
-    ):
-        out[column] = pd.to_numeric(out[column], errors="raise") / denominator_million
+        grouped = baseline_rows.groupby("_normalization_key", sort=False)[baseline_columns].sum()
+        baseline_values = {
+            key: tuple(float(value) for value in row)
+            for key, row in grouped.iterrows()
+        }
+        row_keys = list(zip(out["markup"].astype(float), out["component_group"].astype(str)))
+    else:
+        project_rows = baseline_rows[["markup"] + project_baseline_columns].copy()
+        grouped = project_rows.groupby(project_rows["markup"].astype(float), sort=False)
+        baseline_values = {}
+        for markup, rows in grouped:
+            if any(rows[column].nunique(dropna=False) != 1 for column in project_baseline_columns):
+                raise ValueError(f"Full-project baseline must be unique for markup {markup:g}.")
+            baseline_values[float(markup)] = tuple(
+                float(rows[column].iloc[0]) for column in project_baseline_columns
+            )
+        row_keys = out["markup"].astype(float).tolist()
+
+    denominators = [baseline_values.get(key) for key in row_keys]
+    if any(values is None for values in denominators):
+        missing_keys = sorted({key for key, values in zip(row_keys, denominators) if values is None})
+        raise ValueError(f"Missing delta=0 baselines for normalization: {missing_keys}")
+    denominator_array = np.asarray(denominators, dtype=float)
+    if not np.isfinite(denominator_array).all():
+        raise ValueError("Trade-off baseline values for normalization must be finite.")
+    if (denominator_array[:, 0] <= 0.0).any():
+        raise ValueError("Component baseline expenditure must be positive for normalization.")
+    if (denominator_array[:, 1:] == 0.0).any():
+        raise ValueError("Component baseline GVA and employment must be non-zero for normalization.")
+
+    out["cost_change_million_eur"] = (
+        pd.to_numeric(out["cost_change_million_eur"], errors="raise")
+        / (denominator_array[:, 0] / 1_000_000.0)
+        * 100.0
+    )
+    out["gva_change_million_eur"] = (
+        pd.to_numeric(out["gva_change_million_eur"], errors="raise")
+        / (denominator_array[:, 1] / 1_000_000.0)
+        * 100.0
+    )
+    out["employment_change"] = (
+        pd.to_numeric(out["employment_change"], errors="raise")
+        / denominator_array[:, 2]
+        * 100.0
+    )
     if not np.isfinite(
         out[["cost_change_million_eur", "gva_change_million_eur", "employment_change"]]
         .to_numpy(dtype=float)
@@ -6654,47 +7133,80 @@ def eu27_component_tradeoff_axis_limits(
     indicator: str,
     baseline_markup: float,
     padding: float = 0.04,
-    normalize_by_baseline_cost: bool = False,
+    normalization_scope: str | None = None,
+    required_series: tuple[str, ...] = ("Turbine", "BoP"),
+    component_group: str | None = None,
 ) -> dict[str, tuple[float, float]]:
-    """Calculate shared limits from the central case, retaining all markup envelopes."""
+    """Calculate limits, optionally scoping X to one component group.
+
+    Y limits are always calculated from all required series so that the
+    Turbine and BoP component plots remain comparable within an indicator.
+    """
     indicator_key = str(indicator).strip().upper()
     if indicator_key not in {"GVA", "JOBS"}:
         raise ValueError("indicator must be 'GVA' or 'Jobs'.")
     if not np.isfinite(float(padding)) or not 0.0 <= float(padding) <= 0.1:
         raise ValueError("padding must be between 0 and 0.1 of the observed range.")
     if not {"markup", "component_group", "cost_change_million_eur", "gva_change_million_eur", "employment_change"}.issubset(data.columns):
-        raise KeyError("Trade-off data are missing columns needed to calculate shared limits.")
-    if normalize_by_baseline_cost:
-        data = _normalize_eu27_component_tradeoff_data(
+        raise KeyError("Trade-off data are missing columns needed to calculate axis limits.")
+    scope = _eu27_tradeoff_normalization_scope(normalization_scope)
+    if scope != "absolute":
+        data = _normalize_eu27_tradeoff_data(
             data,
-            baseline_markup=baseline_markup,
+            normalization_scope=scope,
         )
     markups = sorted(pd.to_numeric(data["markup"], errors="raise").unique().tolist())
     if len(markups) != 3 or not np.isclose(markups[1], float(baseline_markup), rtol=0.0, atol=1e-12):
-        raise ValueError("Shared limits require low, central, and high markup observations.")
-    if set(data["component_group"].astype(str).unique()) != {"Turbine", "BoP"}:
-        raise ValueError("Shared limits require both Turbine and BoP observations.")
+        raise ValueError("Axis limits require low, central, and high markup observations.")
+    expected_series = {str(value) for value in required_series}
+    if set(data["component_group"].astype(str).unique()) != expected_series:
+        raise ValueError(f"Axis limits require exactly these series: {sorted(expected_series)}.")
+    if component_group is None:
+        x_data = data
+    else:
+        group = str(component_group).strip()
+        if group not in expected_series:
+            raise ValueError(
+                f"component_group must be one of the required series: {sorted(expected_series)}."
+            )
+        x_data = data.loc[data["component_group"].astype(str).eq(group)]
+        if x_data.empty:
+            raise ValueError(f"No trade-off observations found for component group {group!r}.")
 
     central = data.loc[
         np.isclose(data["markup"].astype(float), float(baseline_markup), rtol=0.0, atol=1e-12)
     ]
     y_col = "gva_change_million_eur" if indicator_key == "GVA" else "employment_change"
     values = central[["cost_change_million_eur", y_col]].to_numpy(dtype=float)
-    if values.size == 0 or not np.isfinite(values).all():
-        raise ValueError("Shared axis observations are empty or non-finite.")
+    x_observations = x_data["cost_change_million_eur"].to_numpy(dtype=float)
+    y_observations = data[y_col].to_numpy(dtype=float)
+    if (
+        values.size == 0
+        or x_observations.size == 0
+        or not np.isfinite(values).all()
+        or not np.isfinite(x_observations).all()
+        or not np.isfinite(y_observations).all()
+    ):
+        raise ValueError("Axis observations are empty or non-finite.")
 
-    def _limits(column):
-        low = float(data[column].min())
-        high = float(data[column].max())
+    def _limits(frame, column):
+        low = float(frame[column].min())
+        high = float(frame[column].max())
         span = high - low
         pad = span * float(padding) if span > 0 else max(abs(low), abs(high), 1.0) * float(padding)
         return (low - pad, high + pad)
 
-    limits = {"xlim": _limits("cost_change_million_eur"), "ylim": _limits(y_col)}
-    # Keep the old central-case limits unless the low/high plotted paths would
-    # be clipped. Extend only the affected edges, with a 0.2% visual margin.
+    limits = {
+        "xlim": _limits(x_data, "cost_change_million_eur"),
+        "ylim": _limits(data, y_col),
+    }
+    # Ensure all plotted low/high paths remain inside the padded limits.
     for key, column in (("xlim", "cost_change_million_eur"), ("ylim", y_col)):
-        all_values = data[column].to_numpy(dtype=float)
+        all_values = (
+            x_data[column].to_numpy(dtype=float)
+            if key == "xlim"
+            else data[column].to_numpy(dtype=float)
+        )
         low, high = limits[key]
         margin = (high - low) * 0.002
         if all_values.min() < low:
@@ -6713,7 +7225,7 @@ def plot_eu27_component_cost_impact_curves(
     filename: str,
     baseline_markup: float,
     axis_limits: dict[str, tuple[float, float]],
-    normalize_by_baseline_cost: bool = False,
+    normalization_scope: str | None = None,
     annualize: bool | None = None,
     save: bool | None = None,
     close: bool | None = None,
@@ -6721,12 +7233,12 @@ def plot_eu27_component_cost_impact_curves(
     """Plot saved component procurement changes against net EU27 effects."""
     from matplotlib.collections import PolyCollection
     from matplotlib.lines import Line2D
-    from matplotlib.ticker import MultipleLocator
 
-    if normalize_by_baseline_cost:
-        data = _normalize_eu27_component_tradeoff_data(
+    scope = _eu27_tradeoff_normalization_scope(normalization_scope)
+    if scope != "absolute":
+        data = _normalize_eu27_tradeoff_data(
             data,
-            baseline_markup=baseline_markup,
+            normalization_scope=scope,
         )
 
     group = str(component_group).strip()
@@ -6783,12 +7295,12 @@ def plot_eu27_component_cost_impact_curves(
 
     x_col = "cost_change_million_eur"
     y_col = "gva_change_million_eur" if indicator_key == "GVA" else "employment_change"
-    if normalize_by_baseline_cost:
-        x_label = r"\boldmath$\Delta\,\mathrm{Procurement\ cost}\;[\mathrm{EUR/EUR}]$"
+    if scope != "absolute":
+        x_label = r"\boldmath$\Delta\,\mathrm{Procurement\ cost}\;[\%\ \mathrm{var}]$"
         if indicator_key == "GVA":
-            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ GVA}\;[\mathrm{EUR/EUR}]$"
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ GVA}\;[\%\ \mathrm{var}]$"
         else:
-            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ employment}\;[\mathrm{FTE\text{-}year\ per\ million\ EUR}]$"
+            y_label = r"\boldmath$\Delta\,\mathrm{EU27\ employment}\;[\%\ \mathrm{var}]$"
     else:
         x_label = r"\boldmath$\Delta\,\mathrm{Procurement\ cost}\;[\mathrm{million\ EUR}]$"
         if indicator_key == "GVA":
@@ -6939,10 +7451,9 @@ def plot_eu27_component_cost_impact_curves(
     ax.set_xlabel(x_label, fontsize=9)
     ax.set_ylabel(y_label, fontsize=8.5)
     apply_house_style(ax, grid=True)
+    ax.grid(False, axis="y", which="minor")
     if indicator_key == "GVA":
-        ax.grid(False, axis="y", which="major")
-        ax.yaxis.set_minor_locator(MultipleLocator(0.05 if normalize_by_baseline_cost else 50.0))
-        ax.grid(True, axis="y", which="minor", linewidth=0.4, alpha=0.3)
+        ax.grid(True, axis="y", which="major", linewidth=0.4, alpha=0.3)
         ax.tick_params(axis="y", which="minor", length=0)
     ax.tick_params(axis="both", labelsize=7.5)
 
@@ -6955,7 +7466,14 @@ def plot_eu27_component_cost_impact_curves(
         return f"{value:,.1f}".rstrip("0").rstrip(".")
 
     ax.xaxis.set_major_formatter(plt.FuncFormatter(_format_tick))
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_tick))
+    def _format_y_tick(value, _position):
+        value = float(value)
+        if abs(value) >= 1000.0:
+            scaled = value / 1000.0
+            return f"{scaled:.0f}k" if abs(scaled) >= 10 else f"{scaled:.1f}k".rstrip("0").rstrip(".")
+        return f"{value:.0f}"
+
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_y_tick))
 
     component_handles = [
         Line2D(
@@ -6994,6 +7512,16 @@ def plot_eu27_component_cost_impact_curves(
 
     ax.set_xlim(*validated_axis_limits["xlim"])
     ax.set_ylim(*validated_axis_limits["ylim"])
+
+    observed_x = subset[x_col].to_numpy(dtype=float)
+    observed_x_min = float(observed_x.min())
+    observed_x_max = float(observed_x.max())
     fig.subplots_adjust(left=0.145, right=0.99, bottom=0.13, top=0.985)
+    print(
+        f"[Figure 3.5] {group}/{indicator_key}: "
+        f"observed X=[{observed_x_min:.6g}, {observed_x_max:.6g}], "
+        f"calculated xlim={validated_axis_limits['xlim']!r}, "
+        f"ax.get_xlim()={ax.get_xlim()!r}"
+    )
     path = save_and_close(fig=fig, filename=filename, save=save, close=close, exact_size=True)
     return fig, ax, path

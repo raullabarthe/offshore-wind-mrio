@@ -613,7 +613,7 @@ def plot_macro_vertical(
     ax.set_ylim(0, 1)
     ax.set_yticks([0, .25, .5, .75, 1])
     ax.set_yticklabels([tex_safe(t) for t in ["0%","25%","50%","75%","100%"]], fontsize=10)
-    ax.set_ylabel(tex_bold("Share of Tier-1 sourcing by origin"))
+    ax.set_ylabel(tex_bold("Share of initial sourcing by origin"))
     ax.set_xticks(xs)
     ax.set_xticklabels([tex_safe("GB" if t in {"UK","GB"} else t) for t in xt[:vals.shape[0]]], fontsize=10)
     ax.tick_params(axis="x", length=0)
@@ -872,7 +872,7 @@ def plot_eu27_weighted_sourcing(
         [tex_safe(label) for label in ("0%", "25%", "50%", "75%", "100%")],
         fontsize=10,
     )
-    ax.set_ylabel(tex_bold("Share of Tier-1 sourcing by origin"), fontsize=10)
+    ax.set_ylabel(tex_bold("Share of initial sourcing by origin"), fontsize=10)
 
     ax.set_xticks(xs)
     xt_disp = [_short_subcomponent_label(label) for label in xt[:vals.shape[0]]]

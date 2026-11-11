@@ -1,16 +1,42 @@
-# Public repository and formal release checklist
+# Release checklist and safe Git workflow
 
-**Current state:** The repository is public. PR #1 (`paper/energy-economics`) was merged into `main` on November 6, 2026. This merge is not a tagged software release, DOI deposit, or journal acceptance.
+This local branch is prepared for review only. It must not be pushed, merged,
+tagged, released, or archived until the following checks receive explicit
+approval.
 
-Before a formal tagged release or Zenodo deposit:
+## Pre-push review
 
-1. Confirm manuscript title, authors, data availability statement, and citation metadata.
-2. Check exact model/data vintages and reconcile tracked figures, tables, and C2/D workbooks with the manuscript; do not replace scientific outputs with unverified reruns.
-3. Resolve the current **public exposure** of processed B1/TGS and B2/WindEurope materials whose redistribution rights remain unverified; do not assume public visibility establishes a license.
-4. Check C1/BVG, FIGARO, Eurostat, ILOSTAT, OECD, source-specific attribution, and derivative-distribution permissions. See [DATA_LICENSE_AUDIT.md](DATA_LICENSE_AUDIT.md).
-5. Record coauthor approval; select a license for author-owned code and separately document data/documentation rights. Do not place an indiscriminate license on third-party material.
-6. Inspect repository history and tracked files for secrets or restricted information.
-7. Decide whether the large D workbook belongs in Git, a release asset, or an external research-data archive.
-8. Document validated run commands, environment versions, and any reproducibility boundary for the exact release commit.
+1. Review `git diff --cached --stat` and `git diff --cached`.
+2. Run secret/credential scans and inspect any finding manually.
+3. Confirm `git ls-files` contains no raw TGS 4C Offshore data, internal
+   allocation files, generated caches, or manuscript-private material.
+4. Check prior Git history for restricted files. Do not rewrite history without
+   explicit approval and an agreed remediation plan.
+5. Confirm the full FIGARO redistribution terms and obtain coauthor/legal
+   review of the selected software/data license.
+6. Verify CFF and Zenodo metadata against the submitted manuscript; do not add
+   a DOI, publication date, release version, or acceptance claim prematurely.
+7. Re-run the structural and native-precision validation appropriate to the
+   intended release asset set.
 
-After approval, a version tag (e.g. `v1.0.0`) can identify the frozen implementation. A GitHub Release and Zenodo deposit are later, separate actions. Do not invent a DOI, publication date, journal acceptance, or release record. Protect `main` from deletion and force pushes where feasible.
+## Proposed pull request
+
+- Base: `main`
+- Compare branch: `paper/energy-economics`
+- Purpose: replace the previous Tier-1 snapshot with the audited
+  current **Made in Europe for offshore wind? Value added, employment, and cost
+  trade-offs** workflow and reproducibility documentation,
+  reproducibility documentation, and safe ignore rules.
+- Do not open or publish the pull request until the staged diff, restricted-data
+  audit, and coauthor review are approved.
+
+## Versioning and archival recommendation
+
+A branch is a line of development. Merging the reviewed branch into `main`
+makes the approved source the default repository state. After the manuscript
+submission package is frozen, create an annotated tag such as
+`v1.0.0-energy-economics-submission` only if the authors approve that naming.
+A GitHub Release is a published distribution built from that tag. Zenodo
+archival should occur only after release review, producing a DOI that can then
+be added to the final citation metadata. None of these actions has been taken
+for this archive.

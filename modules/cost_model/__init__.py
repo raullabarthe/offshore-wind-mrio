@@ -83,5 +83,5 @@ __all__ = [
 ]
 
 __version__ = "2.0.0"
-__author__ = "Offshore wind value-chain MRIO research project"
+__author__ = "Energy Economics paper project"
 

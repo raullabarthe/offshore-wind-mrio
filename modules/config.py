@@ -1,4 +1,4 @@
-"""Project paths and run settings for the offshore wind value-chain MRIO model."""
+"""Project paths and run settings for the Energy Economics model."""
 
 from __future__ import annotations
 

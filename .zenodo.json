@@ -1,9 +1,10 @@
 {
-  "title": "Computational model for What is at stake for the EU in offshore wind value chains? Economic capture and manufacturing trade-offs",
+  "title": "Made in Europe for offshore wind? Value added, employment, and cost trade-offs",
   "upload_type": "software",
+  "publication_date": "2026-07-08",
   "creators": [
     {
-      "name": "Labarthe, Raúl",
+      "name": "Labarthe, Raul",
       "orcid": "0009-0001-6798-330X",
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     },
@@ -18,15 +19,16 @@
       "affiliation": "Department of Wind and Energy Systems, Technical University of Denmark"
     }
   ],
-  "description": "Preprint-stage computational model combining component sourcing and FIGARO MRIO to examine GVA and employment capture for a 1 GW offshore wind farm and counterfactual EU27/non-EU27 turbine and BoP procurement reallocations. No software release or DOI is yet established; verify data rights and coauthor approvals before formal publication.",
+  "description": "Computational model for a FIGARO 2024 multiregional input-output analysis of value added, employment, and cost trade-offs in offshore wind sourcing.",
   "keywords": [
-    "offshore wind",
-    "FIGARO",
+    "wind energy",
+    "input-output analysis",
+    "renewable energy auctions",
+    "local content requirements",
+    "green industrial policy",
     "global value chains",
-    "gross value added",
-    "FTE-years",
-    "sourcing reallocation",
-    "green industrial policy"
+    "offshore wind",
+    "MRIO"
   ],
   "access_right": "open",
   "related_identifiers": [
